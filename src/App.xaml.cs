@@ -7,11 +7,22 @@ namespace TvDesk;
 public partial class App : System.Windows.Application
 {
     private AppController? _controller;
+    private static System.Threading.Mutex? _singleInstance;
 
     private void OnStartup(object sender, StartupEventArgs e)
     {
         Logger.Init();
         Logger.Log("=== TvDesk Startup ===");
+
+        // فقط یک نمونه اجازهٔ اجرا دارد. چند نمونهٔ هم‌زمان (چند پخش‌کنندهٔ LibVLC
+        // و چند پنجرهٔ والپیپر روی یک دسکتاپ) با هم تداخل می‌کنند و باعث کرش می‌شوند.
+        _singleInstance = new System.Threading.Mutex(true, @"Global\TvDesk_SingleInstance", out bool createdNew);
+        if (!createdNew)
+        {
+            Logger.Log("نمونهٔ دیگری از TvDesk در حال اجراست → این نمونه بسته می‌شود");
+            Shutdown();
+            return;
+        }
 
         // هندلرهای سراسری خطا تا هیچ کرشی بی‌صدا نباشد
         DispatcherUnhandledException += (s, ex) =>
@@ -47,5 +58,7 @@ public partial class App : System.Windows.Application
     {
         Logger.Log("=== TvDesk Exit ===");
         _controller?.Dispose();
+        try { _singleInstance?.ReleaseMutex(); } catch { }
+        _singleInstance?.Dispose();
     }
 }

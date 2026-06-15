@@ -24,7 +24,8 @@ public sealed class AppController : IDisposable
     public event Action<string>? StatusChanged;
     public void SetStatus(string message)
     {
-        Logger.Log($"STATUS: {message}");
+        // پیام‌های بافر را در فایل لاگ نمی‌نویسیم (فقط UI) تا لاگ شلوغ نشود
+        if (!message.Contains("بافر")) Logger.Log($"STATUS: {message}");
         try { StatusChanged?.Invoke(message); } catch { }
     }
 

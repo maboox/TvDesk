@@ -64,6 +64,10 @@ public static class WorkerWHelper
         {
             TvDesk.Logger.Log("WorkerW not found → fallback: والد کردن زیر Progman");
             SetParent(myWindowHandle, progman);
+            // ویدیو را به ته z-order ببر تا آیکون‌های دسکتاپ (SHELLDLL_DefView) رویش دیده شوند
+            const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010;
+            SetWindowPos(myWindowHandle, new IntPtr(1) /* HWND_BOTTOM */, 0, 0, 0, 0,
+                SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             return true;
         }
 

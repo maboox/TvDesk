@@ -35,7 +35,13 @@ public partial class ControlWindow : Window
 
         // بستن پنجره = مخفی شدن (اپ در سینی باقی می‌ماند)
         Closing += (s2, e) => { e.Cancel = true; Hide(); };
+
+        // نمایش زندهٔ وضعیت پخش (لود/بافر/خطا)
+        AppController.Instance.StatusChanged += OnStatusChanged;
     }
+
+    private void OnStatusChanged(string message)
+        => Dispatcher.BeginInvoke(new System.Action(() => StatusText.Text = message));
 
     public void PopulateChannels(IEnumerable<Channel> channels)
     {

@@ -1,0 +1,56 @@
+<Window x:Class="TvDesk.UI.ControlWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TvDesk" Height="640" Width="430"
+        WindowStartupLocation="CenterScreen" FlowDirection="RightToLeft"
+        Background="#11131A" Foreground="White" FontFamily="Segoe UI, Tahoma">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,8">
+            <Button x:Name="PlayLinkButton" DockPanel.Dock="Left" Content="پخش لینک" Width="90" Margin="6,0,0,0" Click="OnPlayLink"/>
+            <TextBox x:Name="LinkBox" VerticalContentAlignment="Center" Padding="6"
+                     ToolTip="لینک یوتیوب/آپارات/تلوبیون یا m3u8"/>
+        </DockPanel>
+
+        <TextBox x:Name="SearchBox" Grid.Row="1" Padding="6" Margin="0,0,0,8"
+                 TextChanged="OnSearchChanged" ToolTip="جستجوی کانال"/>
+
+        <DockPanel Grid.Row="2" Margin="0,0,0,8">
+            <ComboBox x:Name="GroupCombo" Width="180" SelectionChanged="OnGroupChanged"/>
+            <CheckBox x:Name="FavOnly" Content="فقط منتخب‌ها" Margin="10,0,0,0" VerticalAlignment="Center" Click="OnFavOnlyChanged"/>
+        </DockPanel>
+
+        <ListBox x:Name="ChannelList" Grid.Row="3" Background="#0C0E14" Foreground="White"
+                 SelectionChanged="OnChannelSelected">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="2">
+                        <Image Width="28" Height="28" Margin="0,0,8,0" Source="{Binding LogoUrl}"/>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Grid Grid.Row="4" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="میوت" x:Name="MuteButton" Width="50" Click="OnMute"/>
+            <Slider Grid.Column="1" x:Name="VolumeSlider" Minimum="0" Maximum="100" Margin="8,0"
+                    VerticalAlignment="Center" ValueChanged="OnVolumeChanged"/>
+            <Button Grid.Column="2" Content="★ منتخب" Margin="6,0,0,0" Click="OnToggleFavorite"/>
+            <Button Grid.Column="3" Content="آیکون‌ها" Margin="6,0,0,0" Click="OnToggleIcons"/>
+        </Grid>
+    </Grid>
+</Window>

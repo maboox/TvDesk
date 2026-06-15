@@ -1,0 +1,6 @@
+bin/
+obj/
+publish/
+tools/yt-dlp.exe
+*.user
+.vs/

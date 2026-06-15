@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using TvDesk.Behaviors;
@@ -12,9 +11,7 @@ using TvDesk.UI;
 
 namespace TvDesk;
 
-/// <summary>
-/// هماهنگ‌کننده‌ی مرکزی اپ: پنجره‌ی والپیپر، پنل کنترل، تری، رفتارهای هوشمند و هات‌کی‌ها.
-/// </summary>
+/// <summary>هماهنگ‌کنندهٔ مرکزی اپ: والپیپر، پنل کنترل، تری، رفتارهای هوشمند و هات‌کی‌ها.</summary>
 public sealed class AppController : IDisposable
 {
     public static AppController Instance { get; private set; } = null!;
@@ -23,7 +20,7 @@ public sealed class AppController : IDisposable
     public PlaybackEngine Playback { get; private set; } = null!;
     public ChannelLibrary Library { get; } = new();
 
-    private DesktopWindow? _desktop;
+    private DesktopHost? _desktop;
     private ControlWindow? _control;
     private TrayIconManager? _tray;
     private FocusFullscreenWatcher? _watcher;
@@ -44,19 +41,19 @@ public sealed class AppController : IDisposable
             Logger.Log("Initializing LibVLC playback engine");
             Playback = new PlaybackEngine();
 
-            Logger.Log("Creating desktop (wallpaper) window");
-            _desktop = new DesktopWindow();
+            Logger.Log("Creating desktop (wallpaper) host");
+            _desktop = new DesktopHost();
             _desktop.Show();
-            _desktop.BindPlayback(Playback);
-            _desktop.AttachToDesktop();
-            _desktop.SetDim(Settings.WallpaperDim);
+            _desktop.AttachToDesktop();   // اول پشت آیکون‌ها ببر
+            _desktop.BindPlayback(Playback); // بعد ویدیو را به HWND وصل کن
 
             Playback.SetVolume(Settings.Volume);
             Playback.SetMuted(Settings.Muted);
+            Playback.SetBrightness((float)(1.0 - Math.Clamp(Settings.WallpaperDim, 0, 0.85)));
 
             Logger.Log("Creating + showing control window");
             _control = new ControlWindow();
-            _control.Show();   // مهم: پنل کنترل را در ابتدا نشان بده تا کاربر چیزی ببیند
+            _control.Show();
             _control.Activate();
 
             Logger.Log("Initializing tray icon");
@@ -78,7 +75,6 @@ public sealed class AppController : IDisposable
             Logger.Log($"Loaded {Library.Channels.Count} channels");
             _control.PopulateChannels(Library.Channels);
 
-            // ادامهٔ آخرین کانال یا اولین کانال
             if (!string.IsNullOrWhiteSpace(Settings.LastChannelUrl))
                 await PlayAsync(Settings.LastChannelUrl!, Settings.LastChannelName ?? "");
             else if (Library.Channels.Count > 0)
@@ -100,6 +96,7 @@ public sealed class AppController : IDisposable
         {
             string playable = await SourceResolver.ResolveAsync(input, Settings.Quality);
             Playback.Play(playable);
+            Playback.SetBrightness((float)(1.0 - Math.Clamp(Settings.WallpaperDim, 0, 0.85)));
             Settings.LastChannelUrl = input;
             Settings.LastChannelName = name;
             SettingsStore.Save(Settings);
@@ -143,7 +140,13 @@ public sealed class AppController : IDisposable
     public void SetDim(double dim)
     {
         Settings.WallpaperDim = dim;
-        _desktop?.SetDim(dim);
+        Playback?.SetBrightness((float)(1.0 - Math.Clamp(dim, 0, 0.85)));
+        SettingsStore.Save(Settings);
+    }
+
+    public void SetQuality(string quality)
+    {
+        Settings.Quality = quality;
         SettingsStore.Save(Settings);
     }
 
@@ -167,6 +170,7 @@ public sealed class AppController : IDisposable
         _hotkeys?.Dispose();
         _tray?.Dispose();
         Playback?.Dispose();
+        try { _desktop?.Close(); _desktop?.Dispose(); } catch { }
         SettingsStore.Save(Settings);
     }
 }

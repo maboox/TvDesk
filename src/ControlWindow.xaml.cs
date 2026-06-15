@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,10 +20,20 @@ public partial class ControlWindow : Window
         _view = CollectionViewSource.GetDefaultView(_channels);
         _view.Filter = FilterChannel;
 
-        VolumeSlider.Value = AppController.Instance.Settings.Volume;
+        var s = AppController.Instance.Settings;
+        VolumeSlider.Value = s.Volume;
+        DimSlider.Value = s.WallpaperDim;
+
+        foreach (var obj in QualityCombo.Items)
+            if (obj is ComboBoxItem item && (item.Tag as string) == s.Quality)
+            {
+                QualityCombo.SelectedItem = item;
+                break;
+            }
+        if (QualityCombo.SelectedItem == null) QualityCombo.SelectedIndex = 0;
 
         // بستن پنجره = مخفی شدن (اپ در سینی باقی می‌ماند)
-        Closing += (s, e) => { e.Cancel = true; Hide(); };
+        Closing += (s2, e) => { e.Cancel = true; Hide(); };
     }
 
     public void PopulateChannels(IEnumerable<Channel> channels)
@@ -66,7 +75,6 @@ public partial class ControlWindow : Window
     private void OnGroupChanged(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
     private void OnFavOnlyChanged(object sender, RoutedEventArgs e) => _view?.Refresh();
 
-    // کلیک روی کانال = پخش آنی (zapping)
     private async void OnChannelSelected(object sender, SelectionChangedEventArgs e)
     {
         if (ChannelList.SelectedItem is Channel c)
@@ -82,6 +90,15 @@ public partial class ControlWindow : Window
 
     private void OnVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         => AppController.Instance.SetVolume((int)e.NewValue);
+
+    private void OnDimChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        => AppController.Instance.SetDim(e.NewValue);
+
+    private void OnQualityChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (QualityCombo.SelectedItem is ComboBoxItem item && item.Tag is string q)
+            AppController.Instance.SetQuality(q);
+    }
 
     private void OnMute(object sender, RoutedEventArgs e) => AppController.Instance.ToggleMute();
     private void OnToggleIcons(object sender, RoutedEventArgs e) => AppController.Instance.ToggleDesktopIcons();

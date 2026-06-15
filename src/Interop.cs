@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace TvDesk.Interop;
 
-/// <summary>ترفند WorkerW برای نشاندن پنجره‌ی ویدیو پشت آیکون‌های دسکتاپ.</summary>
+/// <summary>ترفند WorkerW برای نشاندن پنجرهٔ ویدیو پشت آیکون‌های دسکتاپ.</summary>
 public static class WorkerWHelper
 {
     [DllImport("user32.dll", SetLastError = true)]
@@ -22,12 +22,19 @@ public static class WorkerWHelper
     [DllImport("user32.dll")]
     static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
+    [DllImport("user32.dll")]
+    static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+        int X, int Y, int cx, int cy, uint uFlags);
+
     delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     public static IntPtr GetWorkerW()
     {
         IntPtr progman = FindWindow("Progman", null);
+        TvDesk.Logger.Log($"Progman = {progman}");
+        // درخواست ساخت WorkerW پشت آیکون‌ها
         SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, 0x0000, 1000, out _);
+        SendMessageTimeout(progman, 0x052C, new IntPtr(0x0000000D), new IntPtr(0x00000001), 0x0000, 1000, out _);
 
         IntPtr workerw = IntPtr.Zero;
         EnumWindows((tophandle, _) =>
@@ -41,15 +48,37 @@ public static class WorkerWHelper
         return workerw;
     }
 
-    public static void AttachToDesktop(IntPtr myWindowHandle)
+    /// <summary>پنجره را پشت آیکون‌ها می‌برد. اگر WorkerW پیدا نشد، fallback به Progman.</summary>
+    public static bool AttachToDesktop(IntPtr myWindowHandle)
     {
         IntPtr workerw = GetWorkerW();
+        TvDesk.Logger.Log($"WorkerW = {workerw}");
         if (workerw != IntPtr.Zero)
+        {
             SetParent(myWindowHandle, workerw);
+            return true;
+        }
+
+        IntPtr progman = FindWindow("Progman", null);
+        if (progman != IntPtr.Zero)
+        {
+            TvDesk.Logger.Log("WorkerW not found → fallback: والد کردن زیر Progman");
+            SetParent(myWindowHandle, progman);
+            return true;
+        }
+
+        TvDesk.Logger.Log("نه WorkerW و نه Progman پیدا نشد — اتصال والپیپر ناموفق");
+        return false;
+    }
+
+    public static void SetBounds(IntPtr hWnd, int x, int y, int w, int h)
+    {
+        const uint SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040;
+        SetWindowPos(hWnd, IntPtr.Zero, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
     }
 }
 
-/// <summary>هاید/آنهاید آیکون‌های دسکتاپ با toggle کردن لایه‌ی SysListView32.</summary>
+/// <summary>هاید/آنهاید آیکون‌های دسکتاپ با toggle کردن لایهٔ SysListView32.</summary>
 public static class DesktopIcons
 {
     [DllImport("user32.dll", SetLastError = true)]

@@ -31,7 +31,8 @@ public partial class DesktopWindow : Window
 
     public void BindPlayback(PlaybackEngine engine)
     {
-        VideoView.MediaPlayer = engine.Player;
+        if (engine.Player != null)
+            VideoView.MediaPlayer = engine.Player;
     }
 
     public void SetDim(double dim)

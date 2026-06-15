@@ -19,9 +19,9 @@ public sealed class AppController : IDisposable
 {
     public static AppController Instance { get; private set; } = null!;
 
-    public AppSettings Settings { get; }
-    public PlaybackEngine Playback { get; }
-    public ChannelLibrary Library { get; }
+    public AppSettings Settings { get; private set; } = new();
+    public PlaybackEngine Playback { get; private set; } = null!;
+    public ChannelLibrary Library { get; } = new();
 
     private DesktopWindow? _desktop;
     private ControlWindow? _control;
@@ -32,45 +32,65 @@ public sealed class AppController : IDisposable
     public AppController()
     {
         Instance = this;
-        Settings = SettingsStore.Load();
-        Playback = new PlaybackEngine();
-        Library = new ChannelLibrary();
     }
 
     public async void Start()
     {
-        // پنجره‌ی والپیپر پشت آیکون‌های دسکتاپ
-        _desktop = new DesktopWindow();
-        _desktop.Show();
-        _desktop.BindPlayback(Playback);
-        _desktop.AttachToDesktop();
-        _desktop.SetDim(Settings.WallpaperDim);
+        try
+        {
+            Logger.Log("Loading settings");
+            Settings = SettingsStore.Load();
 
-        Playback.SetVolume(Settings.Volume);
-        Playback.SetMuted(Settings.Muted);
+            Logger.Log("Initializing LibVLC playback engine");
+            Playback = new PlaybackEngine();
 
-        _control = new ControlWindow();
+            Logger.Log("Creating desktop (wallpaper) window");
+            _desktop = new DesktopWindow();
+            _desktop.Show();
+            _desktop.BindPlayback(Playback);
+            _desktop.AttachToDesktop();
+            _desktop.SetDim(Settings.WallpaperDim);
 
-        _tray = new TrayIconManager();
-        _tray.Initialize();
+            Playback.SetVolume(Settings.Volume);
+            Playback.SetMuted(Settings.Muted);
 
-        _watcher = new FocusFullscreenWatcher();
-        _watcher.Start();
+            Logger.Log("Creating + showing control window");
+            _control = new ControlWindow();
+            _control.Show();   // مهم: پنل کنترل را در ابتدا نشان بده تا کاربر چیزی ببیند
+            _control.Activate();
 
-        _hotkeys = new HotkeyManager();
-        _hotkeys.Register();
+            Logger.Log("Initializing tray icon");
+            _tray = new TrayIconManager();
+            _tray.Initialize();
 
-        AutoStartManager.Apply(Settings.AutoStart);
+            Logger.Log("Starting focus/fullscreen watcher");
+            _watcher = new FocusFullscreenWatcher();
+            _watcher.Start();
 
-        // بارگذاری کتابخانه‌ی کانال‌ها (IPTV اپن‌سورس + تلوبیون)
-        await Library.LoadAsync(Settings.PlaylistRefreshDays);
-        _control.PopulateChannels(Library.Channels);
+            Logger.Log("Registering global hotkeys");
+            _hotkeys = new HotkeyManager();
+            _hotkeys.Register();
 
-        // ادامه‌ی آخرین کانال یا اولین کانال
-        if (!string.IsNullOrWhiteSpace(Settings.LastChannelUrl))
-            await PlayAsync(Settings.LastChannelUrl!, Settings.LastChannelName ?? "");
-        else if (Library.Channels.Count > 0)
-            await PlayAsync(Library.Channels[0].Url, Library.Channels[0].Name);
+            AutoStartManager.Apply(Settings.AutoStart);
+
+            Logger.Log("Loading channel library (IPTV + Telewebion)");
+            await Library.LoadAsync(Settings.PlaylistRefreshDays);
+            Logger.Log($"Loaded {Library.Channels.Count} channels");
+            _control.PopulateChannels(Library.Channels);
+
+            // ادامهٔ آخرین کانال یا اولین کانال
+            if (!string.IsNullOrWhiteSpace(Settings.LastChannelUrl))
+                await PlayAsync(Settings.LastChannelUrl!, Settings.LastChannelName ?? "");
+            else if (Library.Channels.Count > 0)
+                await PlayAsync(Library.Channels[0].Url, Library.Channels[0].Name);
+
+            Logger.Log("Startup complete");
+        }
+        catch (Exception ex)
+        {
+            Logger.Log("AppController.Start", ex);
+            try { ShowControl(); } catch { }
+        }
     }
 
     public async Task PlayAsync(string input, string name)
@@ -86,7 +106,7 @@ public sealed class AppController : IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Play failed for {input}: {ex.Message}");
+            Logger.Log($"PlayAsync failed for {input}", ex);
         }
     }
 
@@ -146,7 +166,7 @@ public sealed class AppController : IDisposable
         _watcher?.Dispose();
         _hotkeys?.Dispose();
         _tray?.Dispose();
-        Playback.Dispose();
+        Playback?.Dispose();
         SettingsStore.Save(Settings);
     }
 }

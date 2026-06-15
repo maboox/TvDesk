@@ -20,6 +20,14 @@ public sealed class AppController : IDisposable
     public PlaybackEngine Playback { get; private set; } = null!;
     public ChannelLibrary Library { get; } = new();
 
+    /// <summary>وضعیت جاری اپ (لود/بافر/پخش/خطا) برای نمایش در پنل کنترل.</summary>
+    public event Action<string>? StatusChanged;
+    public void SetStatus(string message)
+    {
+        Logger.Log($"STATUS: {message}");
+        try { StatusChanged?.Invoke(message); } catch { }
+    }
+
     private DesktopHost? _desktop;
     private ControlWindow? _control;
     private TrayIconManager? _tray;
@@ -40,6 +48,7 @@ public sealed class AppController : IDisposable
 
             Logger.Log("Initializing LibVLC playback engine");
             Playback = new PlaybackEngine();
+            Playback.StatusChanged += SetStatus;
 
             Logger.Log("Creating desktop (wallpaper) host");
             _desktop = new DesktopHost();
@@ -94,6 +103,8 @@ public sealed class AppController : IDisposable
         if (string.IsNullOrWhiteSpace(input)) return;
         try
         {
+            string label = string.IsNullOrWhiteSpace(name) ? input : name;
+            SetStatus($"\u23F3 در حال لود کانال: {label}…");
             string playable = await SourceResolver.ResolveAsync(input, Settings.Quality);
             Playback.Play(playable);
             Playback.SetBrightness((float)(1.0 - Math.Clamp(Settings.WallpaperDim, 0, 0.85)));
@@ -103,6 +114,7 @@ public sealed class AppController : IDisposable
         }
         catch (Exception ex)
         {
+            SetStatus($"\u2715 خطا در لود کانال: {name}");
             Logger.Log($"PlayAsync failed for {input}", ex);
         }
     }

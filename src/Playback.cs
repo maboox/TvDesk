@@ -22,7 +22,8 @@ public sealed class PlaybackEngine : IDisposable
         {
             Core.Initialize();
             // دکد نرم‌افزاری: روی پنجرهٔ والپیپر (فرزند Progman) دکد سخت‌افزاری D3D ناپایدار است و کرش می‌دهد.
-            _libVLC = new LibVLC("--no-osd", "--network-caching=2000", "--quiet", "--no-video-title-show", "--avcodec-hw=none");
+            // vout=direct3d9 پایدارتر از d3d11 برای رندر در پنجرهٔ والپیپر (درغیر این صورت d3d11 هنگام شروع پخش کرش می‌کند)
+            _libVLC = new LibVLC("--no-osd", "--network-caching=2000", "--quiet", "--no-video-title-show", "--avcodec-hw=none", "--vout=direct3d9");
             Player = new MediaPlayer(_libVLC) { EnableHardwareDecoding = false };
             HookEvents();
             TvDesk.Logger.Log("LibVLC initialized successfully");

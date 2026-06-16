@@ -5,17 +5,22 @@ using LibVLCSharp.Shared;
 
 namespace TvDesk.Playback;
 
-/// <summary>موتور پخش مبتنی بر LibVLC. رندر مستقیم روی HWND (برای والپیپر). اگر LibVLC نباشد، کرش نمی‌کند.</summary>
+/// <summary>موتور پخش مبتنی بر LibVLC. برای پایداری، هر Play یک MediaPlayer تازه می‌سازد.</summary>
 public sealed class PlaybackEngine : IDisposable
 {
     private LibVLC? _libVLC;
     private Media? _currentMedia;
     private readonly object _playerLock = new();
     private int _lastBufferBucket = -1;
-    public MediaPlayer? Player { get; private set; }
-    public bool Available => Player != null;
+    private IntPtr _videoHwnd;
+    private int _volume = 80;
+    private bool _muted;
 
-    /// <summary>گزارش وضعیت پخش (اتصال/بافر/پخش/خطا) برای نمایش در پنل کنترل.</summary>
+    public MediaPlayer? Player { get; private set; }
+    public bool Available => _libVLC != null;
+    public bool HasEverPlayed { get; private set; }
+    public bool IsPlaying => Player?.IsPlaying ?? false;
+
     public event Action<string>? StatusChanged;
     private void Report(string msg) => StatusChanged?.Invoke(msg);
 
@@ -24,32 +29,44 @@ public sealed class PlaybackEngine : IDisposable
         try
         {
             Core.Initialize();
-            // نسخهٔ نجات/دیباگ: هیچ مسیر D3D استفاده نمی‌کنیم. wingdi کندتر است، ولی برای HWNDهای reparent شدهٔ Explorer
-            // کم‌ریسک‌ترین خروجی VLC است و native crashهای بی‌لاگ D3D را دور می‌زند.
-            _libVLC = new LibVLC("--no-osd", "--network-caching=2000", "--quiet", "--no-video-title-show", "--avcodec-hw=none", "--vout=wingdi", "--no-overlay");
-            Player = new MediaPlayer(_libVLC) { EnableHardwareDecoding = false };
-            HookEvents();
+            _libVLC = new LibVLC(
+                "--no-osd",
+                "--network-caching=2000",
+                "--quiet",
+                "--no-video-title-show",
+                "--avcodec-hw=none",
+                "--vout=wingdi",
+                "--no-overlay");
+            Player = CreatePlayer();
             TvDesk.Logger.Log("LibVLC initialized successfully");
         }
         catch (Exception ex)
         {
-            TvDesk.Logger.Log("LibVLC Core.Initialize failed (احتمالاً پوشهٔ libvlc کنار exe نیست)", ex);
+            TvDesk.Logger.Log("LibVLC Core.Initialize failed", ex);
         }
     }
 
-    /// <summary>اشتراک در رویدادهای پخش‌کننده برای گزارش وضعیت. روی ترد پس‌زمینهٔ VLC اجرا می‌شوند.</summary>
-    private void HookEvents()
+    private MediaPlayer? CreatePlayer()
     {
-        if (Player == null) return;
-        Player.Opening += (_, __) => Report("\u23F3 در حال اتصال به کانال…");
-        Player.Buffering += (_, e) => OnBuffering(e.Cache);
-        Player.Playing += (_, __) => { HasEverPlayed = true; _lastBufferBucket = -1; Report("\u25B6 در حال پخش"); };
-        Player.Paused += (_, __) => Report("\u23F8 مکث");
-        Player.EncounteredError += (_, __) => Report("\u2715 خطا در پخش این کانال (ممکن است خراب یا فیلتر باشد)");
-        Player.EndReached += (_, __) => Report("\u25A0 استریم قطع/تمام شد");
+        if (_libVLC == null) return null;
+        var p = new MediaPlayer(_libVLC) { EnableHardwareDecoding = false };
+        if (_videoHwnd != IntPtr.Zero) p.Hwnd = _videoHwnd;
+        p.Volume = Math.Clamp(_volume, 0, 100);
+        p.Mute = _muted;
+        HookEvents(p);
+        return p;
     }
 
-    /// <summary>گزارش بافر با throttle (هر ۲۰٪ یک‌بار) تا UI و صف dispatcher غرق نشوند.</summary>
+    private void HookEvents(MediaPlayer p)
+    {
+        p.Opening += (_, __) => Report("\u23F3 در حال اتصال به کانال…");
+        p.Buffering += (_, e) => OnBuffering(e.Cache);
+        p.Playing += (_, __) => { HasEverPlayed = true; _lastBufferBucket = -1; Report("\u25B6 در حال پخش"); };
+        p.Paused += (_, __) => Report("\u23F8 مکث");
+        p.EncounteredError += (_, __) => Report("\u2715 خطا در پخش این کانال (ممکن است خراب یا فیلتر باشد)");
+        p.EndReached += (_, __) => Report("\u25A0 استریم قطع/تمام شد");
+    }
+
     private void OnBuffering(float cache)
     {
         if (cache >= 100f) { _lastBufferBucket = -1; Report("\u25B6 در حال پخش"); return; }
@@ -59,56 +76,71 @@ public sealed class PlaybackEngine : IDisposable
         Report($"\u23F3 بافر کردن… {cache:0}%");
     }
 
-    /// <summary>رندر ویدیو را به یک HWND معین وصل می‌کند (پنجرهٔ والپیپر).</summary>
     public void SetVideoHandle(IntPtr hwnd)
     {
-        if (Player != null)
+        _videoHwnd = hwnd;
+        lock (_playerLock)
         {
-            Player.Hwnd = hwnd;
-            TvDesk.Logger.Log($"Player.Hwnd set = {hwnd}");
+            if (Player != null) Player.Hwnd = hwnd;
         }
+        TvDesk.Logger.Log($"Player.Hwnd set = {hwnd}");
     }
 
-    /// <summary>هر کانال/منبع را آنی پخش می‌کند (بدون play/pause/seek).</summary>
+    /// <summary>
+    /// هر بار یک MediaPlayer تازه می‌سازد. این برای جلوگیری از native crash هنگام Restart/Switch مهم است.
+    /// </summary>
     public void Play(string url)
     {
-        if (_libVLC == null || Player == null)
+        if (_libVLC == null)
         {
             Report("\u2715 موتور پخش در دسترس نیست (LibVLC لود نشد)");
             TvDesk.Logger.Log("Play skipped: LibVLC not available");
             return;
         }
+
         lock (_playerLock)
         {
+            MediaPlayer? oldPlayer = null;
+            Media? oldMedia = null;
             try
             {
                 Report("\u23F3 در حال باز کردن استریم…");
                 Uri uri = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u : new Uri(url);
 
-                // تعویض کانال روی VLC اگر سریع پشت‌سرهم انجام شود می‌تواند native hang/crash بدهد.
-                // Stop کوتاه + تأخیر خیلی کم، خروجی قبلی را پایدارتر آزاد می‌کند.
-                try
+                oldPlayer = Player;
+                oldMedia = _currentMedia;
+
+                try { oldPlayer?.Stop(); } catch (Exception ex) { TvDesk.Logger.Log("Old player stop failed", ex); }
+                Thread.Sleep(180);
+
+                var newPlayer = CreatePlayer() ?? throw new InvalidOperationException("Could not create VLC player");
+                var newMedia = new Media(_libVLC, uri);
+
+                Player = newPlayer;
+                _currentMedia = newMedia;
+
+                bool ok = newPlayer.Play(newMedia);
+                TvDesk.Logger.Log($"Playing: {url} ok={ok} newPlayerCreated=True");
+
+                // Dispose قدیمی‌ها با تأخیر، بیرون از مسیر native Play جدید.
+                if (oldPlayer != null || oldMedia != null)
                 {
-                    if (Player.IsPlaying) Player.Stop();
-                    Thread.Sleep(120);
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(2500);
+                        try { oldPlayer?.Stop(); } catch { }
+                        try { oldPlayer?.Dispose(); } catch { }
+                        try { oldMedia?.Dispose(); } catch { }
+                    });
                 }
-                catch (Exception ex) { TvDesk.Logger.Log("Pre-play stop failed", ex); }
-
-                var media = new Media(_libVLC, uri);
-                bool ok = Player.Play(media);
-                var previous = _currentMedia;
-                _currentMedia = media;
-
-                // Dispose مدیای قبلی را کمی عقب می‌اندازیم تا VLC native دیگر به آن reference نداشته باشد.
-                if (previous != null)
-                    Task.Run(async () => { await Task.Delay(1200); try { previous.Dispose(); } catch { } });
-
-                TvDesk.Logger.Log($"Playing: {url} ok={ok}");
             }
             catch (Exception ex)
             {
+                // اگر قبل از ثبت Playing exception C# رخ دهد، حداقل لاگ می‌شود؛ native crash ممکن است اینجا نرسد.
                 Report("\u2715 خطا در باز کردن این کانال");
                 TvDesk.Logger.Log($"Play failed: {url}", ex);
+                try { oldPlayer?.Dispose(); } catch { }
+                try { oldMedia?.Dispose(); } catch { }
             }
         }
     }
@@ -121,44 +153,43 @@ public sealed class PlaybackEngine : IDisposable
         }
     }
 
-    /// <summary>برای فول‌اسکرین فقط Pause می‌کنیم تا فریم آخر روی دسکتاپ بماند و برگشت از اول لود نکند.</summary>
     public void PauseKeepFrame()
     {
-        try
-        {
-            if (Player == null) return;
-            if (Player.IsPlaying) Player.Pause();
-        }
+        try { if (Player?.IsPlaying == true) Player.Pause(); }
         catch (Exception ex) { TvDesk.Logger.Log("PauseKeepFrame failed", ex); }
     }
 
     public void Resume()
     {
-        try
-        {
-            if (Player == null) return;
-            Player.Play();
-        }
+        try { Player?.Play(); }
         catch (Exception ex) { TvDesk.Logger.Log("Resume failed", ex); }
     }
 
-    public bool HasEverPlayed { get; private set; }
-    public bool IsPlaying => Player?.IsPlaying ?? false;
-    public void SetVolume(int v) { if (Player != null) Player.Volume = Math.Clamp(v, 0, 100); }
-    public void SetMuted(bool muted) { if (Player != null) Player.Mute = muted; }
+    public void SetVolume(int v)
+    {
+        _volume = Math.Clamp(v, 0, 100);
+        lock (_playerLock) { if (Player != null) Player.Volume = _volume; }
+    }
 
-    /// <summary>تاریک‌کردن والپیپر با کاهش brightness (0..2 والد، 1=عادی).</summary>
+    public void SetMuted(bool muted)
+    {
+        _muted = muted;
+        lock (_playerLock) { if (Player != null) Player.Mute = muted; }
+    }
+
     public void SetBrightness(float brightness)
     {
-        // موقتاً غیرفعال: VideoAdjust روی بعضی خروجی‌های VLC/والپیپر می‌تواند native crash بدهد.
-        TvDesk.Logger.Log($"SetBrightness skipped in rescue build: {brightness:0.00}");
+        TvDesk.Logger.Log($"SetBrightness skipped: {brightness:0.00}");
     }
 
     public void Dispose()
     {
-        try { Player?.Stop(); } catch { }
-        Player?.Dispose();
-        _currentMedia?.Dispose();
-        _libVLC?.Dispose();
+        lock (_playerLock)
+        {
+            try { Player?.Stop(); } catch { }
+            try { Player?.Dispose(); } catch { }
+            try { _currentMedia?.Dispose(); } catch { }
+            try { _libVLC?.Dispose(); } catch { }
+        }
     }
 }

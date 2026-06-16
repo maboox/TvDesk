@@ -48,6 +48,7 @@ public partial class ControlWindow : Window
         PauseFocusBox.IsChecked = s.PauseVideoOnFocusLoss;
         MuteFullscreenBox.IsChecked = s.MuteAudioOnFullscreen;
         PauseFullscreenBox.IsChecked = s.PauseVideoOnFullscreen;
+        AutoStartBox.IsChecked = s.AutoStart;
 
         foreach (var obj in QualityCombo.Items)
             if (obj is ComboBoxItem item && (item.Tag as string) == s.Quality)
@@ -244,7 +245,9 @@ public partial class ControlWindow : Window
         s.PauseVideoOnFocusLoss = PauseFocusBox.IsChecked == true;
         s.MuteAudioOnFullscreen = MuteFullscreenBox.IsChecked == true;
         s.PauseVideoOnFullscreen = PauseFullscreenBox.IsChecked == true;
+        s.AutoStart = AutoStartBox.IsChecked == true;
         SettingsStore.Save(s);
+        AutoStartManager.Apply(s.AutoStart);
     }
 
     private async void OnCompleteOnboarding(object sender, RoutedEventArgs e)

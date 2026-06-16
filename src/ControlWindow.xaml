@@ -176,6 +176,9 @@
                   <CheckBox x:Name="PauseFullscreenBox" Content="تصویر فریز شود" Click="OnBehaviorChanged"/>
                 </StackPanel>
               </Grid>
+              <Border Background="#0D1220" CornerRadius="10" Padding="10" Margin="0,12,0,0">
+                <CheckBox x:Name="AutoStartBox" Content="با شروع ویندوز TvDesk خودکار اجرا شود" Click="OnBehaviorChanged"/>
+              </Border>
             </StackPanel>
           </Border>
 

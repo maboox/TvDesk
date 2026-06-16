@@ -17,12 +17,15 @@ public sealed class FocusFullscreenWatcher : IDisposable
     struct RECT { public int Left, Top, Right, Bottom; }
 
     private readonly DispatcherTimer _timer;
-    private bool _pausedForFullscreen;
-    private bool _pausedForFocus;
+    private bool _visualFrozen;
+    private bool _lastFocusLost;
+    private bool _lastFullscreen;
+    private int _sameStateTicks;
+    private DateTime _lastVisualChange = DateTime.MinValue;
 
     public FocusFullscreenWatcher()
     {
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
         _timer.Tick += Tick;
     }
 
@@ -44,37 +47,43 @@ public sealed class FocusFullscreenWatcher : IDisposable
         if (focusLost && GetWindowRect(fg, out RECT r))
         {
             int w = r.Right - r.Left, h = r.Bottom - r.Top;
-            fullscreen = w >= (int)System.Windows.SystemParameters.PrimaryScreenWidth
-                      && h >= (int)System.Windows.SystemParameters.PrimaryScreenHeight;
+            // کمی tolerance می‌گذاریم تا false positive کمتر شود.
+            fullscreen = w >= (int)System.Windows.SystemParameters.PrimaryScreenWidth - 8
+                      && h >= (int)System.Windows.SystemParameters.PrimaryScreenHeight - 8;
         }
 
-        // تصویر: fullscreen اولویت دارد، بعد focus. هر کدام مستقل از صدا قابل تنظیم‌اند.
-        if (ctrl.Settings.PauseVideoOnFullscreen && fullscreen)
+        if (focusLost == _lastFocusLost && fullscreen == _lastFullscreen) _sameStateTicks++;
+        else
         {
-            if (!_pausedForFullscreen) { ctrl.FreezeVisual("fullscreen"); _pausedForFullscreen = true; }
+            _sameStateTicks = 0;
+            _lastFocusLost = focusLost;
+            _lastFullscreen = fullscreen;
+            return; // یک tick صبر کن تا state پایدار شود.
         }
-        else if (_pausedForFullscreen && !fullscreen)
-        {
-            _pausedForFullscreen = false;
-            ctrl.UnfreezeVisual("fullscreen ended");
-        }
+        if (_sameStateTicks < 1) return;
 
-        if (!_pausedForFullscreen && ctrl.Settings.PauseVideoOnFocusLoss && focusLost)
-        {
-            if (!_pausedForFocus) { ctrl.FreezeVisual("focus lost"); _pausedForFocus = true; }
-        }
-        else if (_pausedForFocus && (!focusLost || _pausedForFullscreen))
-        {
-            _pausedForFocus = false;
-            if (!_pausedForFullscreen) ctrl.UnfreezeVisual("focus returned");
-        }
+        bool shouldFreeze = (ctrl.Settings.PauseVideoOnFullscreen && fullscreen)
+                         || (!fullscreen && ctrl.Settings.PauseVideoOnFocusLoss && focusLost);
+        bool shouldMute = !ctrl.Settings.Muted &&
+                          ((ctrl.Settings.MuteAudioOnFullscreen && fullscreen)
+                        || (!fullscreen && ctrl.Settings.MuteAudioOnFocusLoss && focusLost));
 
-        // صدا: اگر کاربر دستی mute کرده، آن را دست نمی‌زنیم.
-        if (!ctrl.Settings.Muted)
+        ctrl.Playback.SetMuted(shouldMute);
+
+        // debounce سنگین: FreezeFrame screenshot می‌گیرد و نباید با نوسان focus/fullscreen پشت‌سرهم اجرا شود.
+        if (DateTime.UtcNow - _lastVisualChange < TimeSpan.FromSeconds(2)) return;
+
+        if (shouldFreeze && !_visualFrozen)
         {
-            bool shouldMute = (ctrl.Settings.MuteAudioOnFullscreen && fullscreen)
-                           || (ctrl.Settings.MuteAudioOnFocusLoss && focusLost);
-            ctrl.Playback.SetMuted(shouldMute);
+            _visualFrozen = true;
+            _lastVisualChange = DateTime.UtcNow;
+            ctrl.FreezeVisual(fullscreen ? "fullscreen" : "focus lost");
+        }
+        else if (!shouldFreeze && _visualFrozen)
+        {
+            _visualFrozen = false;
+            _lastVisualChange = DateTime.UtcNow;
+            ctrl.UnfreezeVisual("normal");
         }
     }
 

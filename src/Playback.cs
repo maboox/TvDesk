@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using LibVLCSharp.Shared;
 
 namespace TvDesk.Playback;
@@ -8,6 +10,7 @@ public sealed class PlaybackEngine : IDisposable
 {
     private LibVLC? _libVLC;
     private Media? _currentMedia;
+    private readonly object _playerLock = new();
     private int _lastBufferBucket = -1;
     public MediaPlayer? Player { get; private set; }
     public bool Available => Player != null;
@@ -75,27 +78,48 @@ public sealed class PlaybackEngine : IDisposable
             TvDesk.Logger.Log("Play skipped: LibVLC not available");
             return;
         }
-        try
+        lock (_playerLock)
         {
-            Report("\u23F3 در حال باز کردن استریم…");
-            Uri uri = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u : new Uri(url);
-            var media = new Media(_libVLC, uri);
-            Player.Play(media);
-            // مدیای *قبلی* را آزاد کن، نه مدیای فعلی را. dispose فوریِ مدیای درحال‌پخش
-            // باعث کرش native (access violation) می‌شود — علت کرش نسخهٔ قبل.
-            var previous = _currentMedia;
-            _currentMedia = media;
-            previous?.Dispose();
-            TvDesk.Logger.Log($"Playing: {url}");
-        }
-        catch (Exception ex)
-        {
-            Report("\u2715 خطا در باز کردن این کانال");
-            TvDesk.Logger.Log($"Play failed: {url}", ex);
+            try
+            {
+                Report("\u23F3 در حال باز کردن استریم…");
+                Uri uri = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u : new Uri(url);
+
+                // تعویض کانال روی VLC اگر سریع پشت‌سرهم انجام شود می‌تواند native hang/crash بدهد.
+                // Stop کوتاه + تأخیر خیلی کم، خروجی قبلی را پایدارتر آزاد می‌کند.
+                try
+                {
+                    if (Player.IsPlaying) Player.Stop();
+                    Thread.Sleep(120);
+                }
+                catch (Exception ex) { TvDesk.Logger.Log("Pre-play stop failed", ex); }
+
+                var media = new Media(_libVLC, uri);
+                bool ok = Player.Play(media);
+                var previous = _currentMedia;
+                _currentMedia = media;
+
+                // Dispose مدیای قبلی را کمی عقب می‌اندازیم تا VLC native دیگر به آن reference نداشته باشد.
+                if (previous != null)
+                    Task.Run(async () => { await Task.Delay(1200); try { previous.Dispose(); } catch { } });
+
+                TvDesk.Logger.Log($"Playing: {url} ok={ok}");
+            }
+            catch (Exception ex)
+            {
+                Report("\u2715 خطا در باز کردن این کانال");
+                TvDesk.Logger.Log($"Play failed: {url}", ex);
+            }
         }
     }
 
-    public void Stop() => Player?.Stop();
+    public void Stop()
+    {
+        lock (_playerLock)
+        {
+            try { Player?.Stop(); } catch (Exception ex) { TvDesk.Logger.Log("Stop failed", ex); }
+        }
+    }
 
     /// <summary>برای فول‌اسکرین فقط Pause می‌کنیم تا فریم آخر روی دسکتاپ بماند و برگشت از اول لود نکند.</summary>
     public void PauseKeepFrame()

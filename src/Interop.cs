@@ -147,9 +147,10 @@ public static class WorkerWHelper
     }
 
     /// <summary>
-    /// Win11 24H2 در لاگ کاربر نشان داد SHELLDLL_DefView و WorkerW هر دو فرزند Progman هستند.
-    /// والد کردن به WorkerW در این ساختار نامرئی می‌شود. پس پنجرهٔ TvDesk را مستقیماً فرزند Progman می‌کنیم
-    /// و در z-order زیر SHELLDLL_DefView قرار می‌دهیم تا پشت آیکون‌ها ولی روی والپیپر دیده شود.
+    /// Adaptive attach:
+    /// - Windows 10 / older Windows 11 often expose a classic top-level WorkerW behind desktop icons.
+    /// - Windows 11 24H2 can expose WorkerW as a child of Progman; parenting there can become invisible.
+    /// In that case we use Progman and z-order relative to SHELLDLL_DefView.
     /// </summary>
     public static bool AttachToDesktop(IntPtr myWindowHandle)
     {
@@ -157,7 +158,7 @@ public static class WorkerWHelper
         TvDesk.Logger.Log($"AttachToDesktop: hwnd={myWindowHandle}, Progman={progman}");
         if (progman == IntPtr.Zero) return false;
 
-        _ = GetClassicWorkerW();
+        IntPtr classicWorkerW = GetClassicWorkerW();
         LogDesktopTree("before attach");
 
         long style = GetWindowLongPtr(myWindowHandle, GWL_STYLE).ToInt64();
@@ -171,16 +172,25 @@ public static class WorkerWHelper
         SetWindowLongPtr(myWindowHandle, GWL_STYLE, new IntPtr(style));
         SetWindowLongPtr(myWindowHandle, GWL_EXSTYLE, new IntPtr(exStyle));
 
-        IntPtr oldParent = SetParent(myWindowHandle, progman);
-        TvDesk.Logger.Log($"SetParent -> oldParent={oldParent}, newParent={GetParent(myWindowHandle)}");
+        // Classic WorkerW path: best for Windows 10 / older Windows 11.
+        if (classicWorkerW != IntPtr.Zero && GetParent(classicWorkerW) == IntPtr.Zero)
+        {
+            IntPtr oldParent = SetParent(myWindowHandle, classicWorkerW);
+            TvDesk.Logger.Log($"Attach route=classic WorkerW; workerw={classicWorkerW}; oldParent={oldParent}; newParent={GetParent(myWindowHandle)}");
+            SetWindowPos(myWindowHandle, HWND_TOP, 0, 0, 0, 0,
+                SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+        }
+        else
+        {
+            // Windows 11 24H2 fallback that worked on the user's build 26200.
+            IntPtr oldParent = SetParent(myWindowHandle, progman);
+            TvDesk.Logger.Log($"Attach route=Progman fallback; oldParent={oldParent}; newParent={GetParent(myWindowHandle)}");
+            SetWindowPos(myWindowHandle, HWND_TOP, 0, 0, 0, 0,
+                SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+        }
 
-        IntPtr defView = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
-        TvDesk.Logger.Log($"DefView sibling for z-order = {defView}; rescue mode uses HWND_TOP to guarantee visibility");
-        SetWindowPos(myWindowHandle, HWND_TOP, 0, 0, 0, 0,
-            SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
         ShowWindow(myWindowHandle, SW_SHOW);
         UpdateWindow(myWindowHandle);
-
         TvDesk.Logger.Log($"After attach style=0x{GetWindowLongPtr(myWindowHandle, GWL_STYLE).ToInt64():X}, ex=0x{GetWindowLongPtr(myWindowHandle, GWL_EXSTYLE).ToInt64():X}, parent={GetParent(myWindowHandle)}, vis={IsWindowVisible(myWindowHandle)} {RectOf(myWindowHandle)}");
         LogDesktopTree("after attach");
         return true;
@@ -191,16 +201,20 @@ public static class WorkerWHelper
         try
         {
             IntPtr progman = FindWindow("Progman", null);
+            IntPtr parent = GetParent(hWnd);
             IntPtr defView = progman != IntPtr.Zero ? FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null) : IntPtr.Zero;
-            if (defView != IntPtr.Zero)
+
+            // If TvDesk is parented to Progman (Win11 24H2 fallback), z-order relative to DefView.
+            if (progman != IntPtr.Zero && parent == progman && defView != IntPtr.Zero)
             {
                 SetWindowPos(hWnd, defView, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-                TvDesk.Logger.Log($"TvDesk placed behind desktop icons: hwnd={hWnd}, defView={defView}");
+                TvDesk.Logger.Log($"TvDesk placed behind desktop icons (Progman route): hwnd={hWnd}, defView={defView}");
             }
             else
             {
+                // If parented to WorkerW (Win10/classic), keep it top within that WorkerW.
                 SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-                TvDesk.Logger.Log($"TvDesk placed HWND_TOP because DefView not found: hwnd={hWnd}");
+                TvDesk.Logger.Log($"TvDesk placed HWND_TOP within parent={parent}: hwnd={hWnd}");
             }
             ShowWindow(hWnd, SW_SHOW);
             UpdateWindow(hWnd);

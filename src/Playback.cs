@@ -8,6 +8,7 @@ public sealed class PlaybackEngine : IDisposable
 {
     private LibVLC? _libVLC;
     private Media? _currentMedia;
+    private int _lastBufferBucket = -1;
     public MediaPlayer? Player { get; private set; }
     public bool Available => Player != null;
 
@@ -20,8 +21,9 @@ public sealed class PlaybackEngine : IDisposable
         try
         {
             Core.Initialize();
-            _libVLC = new LibVLC("--no-osd", "--network-caching=1500", "--quiet", "--no-video-title-show");
-            Player = new MediaPlayer(_libVLC) { EnableHardwareDecoding = true };
+            // دکد نرم‌افزاری: روی پنجرهٔ والپیپر (فرزند Progman) دکد سخت‌افزاری D3D ناپایدار است و کرش می‌دهد.
+            _libVLC = new LibVLC("--no-osd", "--network-caching=2000", "--quiet", "--no-video-title-show", "--avcodec-hw=none");
+            Player = new MediaPlayer(_libVLC) { EnableHardwareDecoding = false };
             HookEvents();
             TvDesk.Logger.Log("LibVLC initialized successfully");
         }
@@ -36,11 +38,21 @@ public sealed class PlaybackEngine : IDisposable
     {
         if (Player == null) return;
         Player.Opening += (_, __) => Report("\u23F3 در حال اتصال به کانال…");
-        Player.Buffering += (_, e) => Report(e.Cache >= 100f ? "\u25B6 در حال پخش" : $"\u23F3 بافر کردن… {e.Cache:0}%");
-        Player.Playing += (_, __) => Report("\u25B6 در حال پخش");
+        Player.Buffering += (_, e) => OnBuffering(e.Cache);
+        Player.Playing += (_, __) => { _lastBufferBucket = -1; Report("\u25B6 در حال پخش"); };
         Player.Paused += (_, __) => Report("\u23F8 مکث");
         Player.EncounteredError += (_, __) => Report("\u2715 خطا در پخش این کانال (ممکن است خراب یا فیلتر باشد)");
         Player.EndReached += (_, __) => Report("\u25A0 استریم قطع/تمام شد");
+    }
+
+    /// <summary>گزارش بافر با throttle (هر ۲۰٪ یک‌بار) تا UI و صف dispatcher غرق نشوند.</summary>
+    private void OnBuffering(float cache)
+    {
+        if (cache >= 100f) { _lastBufferBucket = -1; Report("\u25B6 در حال پخش"); return; }
+        int bucket = (int)(cache / 20f);
+        if (bucket == _lastBufferBucket) return;
+        _lastBufferBucket = bucket;
+        Report($"\u23F3 بافر کردن… {cache:0}%");
     }
 
     /// <summary>رندر ویدیو را به یک HWND معین وصل می‌کند (پنجرهٔ والپیپر).</summary>

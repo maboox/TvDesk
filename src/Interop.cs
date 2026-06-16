@@ -45,7 +45,17 @@ public static class WorkerWHelper
             return true;
         }, IntPtr.Zero);
 
-        return workerw;
+        if (workerw != IntPtr.Zero)
+        {
+            TvDesk.Logger.Log($"WorkerW (top-level sibling) = {workerw}");
+            return workerw;
+        }
+
+        // ویندوز ۱۱ 24H2 (build 26xxx): WorkerW دیگر سطح‌بالا نیست، بلکه فرزند مستقیم Progman است.
+        IntPtr childWorkerW = FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
+        if (childWorkerW != IntPtr.Zero)
+            TvDesk.Logger.Log($"WorkerW (Progman child / 24H2) = {childWorkerW}");
+        return childWorkerW;
     }
 
     /// <summary>پنجره را پشت آیکون‌ها می‌برد. اگر WorkerW پیدا نشد، fallback به Progman.</summary>
@@ -64,10 +74,12 @@ public static class WorkerWHelper
         {
             TvDesk.Logger.Log("WorkerW not found → fallback: والد کردن زیر Progman");
             SetParent(myWindowHandle, progman);
-            // ویدیو را به ته z-order ببر تا آیکون‌های دسکتاپ (SHELLDLL_DefView) رویش دیده شوند
+            // درست زیرِ آیکون‌ها (SHELLDLL_DefView) قرار می‌دهیم تا والپیپر پشت بماند و آیکون‌ها رویش دیده شوند.
+            // مهم: از HWND_BOTTOM استفاده نمی‌کنیم چون در ویندوز ۱۱ پنجره را پشتِ لایهٔ والپیپر می‌برد و نامرئی می‌شود.
             const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010;
-            SetWindowPos(myWindowHandle, new IntPtr(1) /* HWND_BOTTOM */, 0, 0, 0, 0,
-                SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            IntPtr defView = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+            if (defView != IntPtr.Zero)
+                SetWindowPos(myWindowHandle, defView, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             return true;
         }
 

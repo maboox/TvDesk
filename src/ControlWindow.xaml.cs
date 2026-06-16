@@ -106,8 +106,13 @@ public partial class ControlWindow : Window
         CountryCombo.ItemsSource = countries;
         CountryCombo.SelectedItem = countries.Contains(curCountry) ? curCountry : countries[0];
 
+        var countrySet = countries.Skip(1).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var genres = new List<string> { "همه سبک‌ها" };
-        genres.AddRange(_channels.Select(c => NormalizeFilterValue(c.Group)).Where(x => x.Length > 0).Distinct().OrderBy(x => x));
+        genres.AddRange(_channels.Select(c => NormalizeFilterValue(c.Group))
+            .Where(x => x.Length > 0)
+            .Where(x => !countrySet.Contains(x) && !TvDesk.Sources.M3uParser.LooksLikeCountry(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x));
         GenreCombo.ItemsSource = genres;
         GenreCombo.SelectedItem = genres.Contains(curGenre) ? curGenre : genres[0];
 

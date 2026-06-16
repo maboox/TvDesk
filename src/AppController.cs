@@ -27,6 +27,13 @@ public sealed class AppController : IDisposable
         // پیام‌های بافر را در فایل لاگ نمی‌نویسیم (فقط UI) تا لاگ شلوغ نشود
         if (!message.Contains("بافر")) Logger.Log($"STATUS: {message}");
         try { StatusChanged?.Invoke(message); } catch { }
+        try
+        {
+            // صفحهٔ تیرهٔ دسکتاپ: هنگام پخش پنهان، در غیر این صورت نمایش وضعیت
+            if (message.Contains("در حال پخش")) _desktop?.HideStatus();
+            else if (!message.Contains("بافر")) _desktop?.ShowStatus(message);
+        }
+        catch { }
     }
 
     private DesktopHost? _desktop;

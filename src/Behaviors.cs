@@ -51,22 +51,22 @@ public sealed class FocusFullscreenWatcher : IDisposable
         // تصویر: fullscreen اولویت دارد، بعد focus. هر کدام مستقل از صدا قابل تنظیم‌اند.
         if (ctrl.Settings.PauseVideoOnFullscreen && fullscreen)
         {
-            if (!_pausedForFullscreen) { ctrl.PauseVideo("fullscreen"); _pausedForFullscreen = true; }
+            if (!_pausedForFullscreen) { ctrl.FreezeVisual("fullscreen"); _pausedForFullscreen = true; }
         }
         else if (_pausedForFullscreen && !fullscreen)
         {
             _pausedForFullscreen = false;
-            ctrl.ResumeVideo("fullscreen ended");
+            ctrl.UnfreezeVisual("fullscreen ended");
         }
 
         if (!_pausedForFullscreen && ctrl.Settings.PauseVideoOnFocusLoss && focusLost)
         {
-            if (!_pausedForFocus) { ctrl.PauseVideo("focus lost"); _pausedForFocus = true; }
+            if (!_pausedForFocus) { ctrl.FreezeVisual("focus lost"); _pausedForFocus = true; }
         }
         else if (_pausedForFocus && (!focusLost || _pausedForFullscreen))
         {
             _pausedForFocus = false;
-            if (!_pausedForFullscreen) ctrl.ResumeVideo("focus returned");
+            if (!_pausedForFullscreen) ctrl.UnfreezeVisual("focus returned");
         }
 
         // صدا: اگر کاربر دستی mute کرده، آن را دست نمی‌زنیم.

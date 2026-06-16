@@ -166,14 +166,14 @@
               <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                  <TextBlock Text="وقتی اپ از فوکوس خارج شد" Foreground="#B8C0D8" Margin="0,0,0,4"/>
+                  <TextBlock Text="وقتی فوکوس خارج شد (استریم ادامه دارد)" Foreground="#B8C0D8" Margin="0,0,0,4"/>
                   <CheckBox x:Name="MuteFocusBox" Content="صدا قطع شود" Click="OnBehaviorChanged"/>
-                  <CheckBox x:Name="PauseFocusBox" Content="تصویر Pause شود" Click="OnBehaviorChanged"/>
+                  <CheckBox x:Name="PauseFocusBox" Content="تصویر فریز شود" Click="OnBehaviorChanged"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                  <TextBlock Text="وقتی برنامه‌ای فول‌اسکرین شد" Foreground="#B8C0D8" Margin="0,0,0,4"/>
+                  <TextBlock Text="وقتی فول‌اسکرین شد (استریم ادامه دارد)" Foreground="#B8C0D8" Margin="0,0,0,4"/>
                   <CheckBox x:Name="MuteFullscreenBox" Content="صدا قطع شود" Click="OnBehaviorChanged"/>
-                  <CheckBox x:Name="PauseFullscreenBox" Content="تصویر Pause شود" Click="OnBehaviorChanged"/>
+                  <CheckBox x:Name="PauseFullscreenBox" Content="تصویر فریز شود" Click="OnBehaviorChanged"/>
                 </StackPanel>
               </Grid>
             </StackPanel>
@@ -182,15 +182,33 @@
           <Border Style="{StaticResource Card}" Margin="0,0,0,12">
             <StackPanel>
               <TextBlock Text="جستجو و دسته‌بندی" Style="{StaticResource SectionTitle}"/>
+              <TextBlock Text="جستجو" Foreground="#B8C0D8" Margin="0,0,0,4"/>
+              <TextBox x:Name="SearchBox" TextChanged="OnSearchChanged" Margin="0,0,0,10"/>
               <Grid Margin="0,0,0,10">
                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Margin="0,0,6,0">
-                  <TextBlock Text="جستجو" Foreground="#B8C0D8" Margin="0,0,0,4"/>
-                  <TextBox x:Name="SearchBox" TextChanged="OnSearchChanged"/>
+                  <TextBlock Text="کشور" Foreground="#B8C0D8" Margin="0,0,0,4"/>
+                  <ComboBox x:Name="CountryCombo" SelectionChanged="OnFilterChanged"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="6,0,0,0">
-                  <TextBlock Text="گروه / کشور / سورس" Foreground="#B8C0D8" Margin="0,0,0,4"/>
-                  <ComboBox x:Name="GroupCombo" SelectionChanged="OnGroupChanged"/>
+                  <TextBlock Text="سبک / ژانر" Foreground="#B8C0D8" Margin="0,0,0,4"/>
+                  <ComboBox x:Name="GenreCombo" SelectionChanged="OnFilterChanged"/>
+                </StackPanel>
+              </Grid>
+              <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                  <TextBlock Text="سورس" Foreground="#B8C0D8" Margin="0,0,0,4"/>
+                  <ComboBox x:Name="SourceCombo" SelectionChanged="OnFilterChanged"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                  <TextBlock Text="وضعیت تست" Foreground="#B8C0D8" Margin="0,0,0,4"/>
+                  <ComboBox x:Name="HealthCombo" SelectionChanged="OnFilterChanged">
+                    <ComboBoxItem Content="همه وضعیت‌ها" Tag="all"/>
+                    <ComboBoxItem Content="فقط سالم‌ها" Tag="alive"/>
+                    <ComboBoxItem Content="فقط خراب‌ها" Tag="dead"/>
+                    <ComboBoxItem Content="تست‌نشده‌ها" Tag="unknown"/>
+                  </ComboBox>
                 </StackPanel>
               </Grid>
               <Grid>
@@ -224,7 +242,7 @@
                           <TextBlock Text="{Binding Group}" Foreground="#7D8AA8" FontSize="11" TextTrimming="CharacterEllipsis"/>
                           <TextBlock Text="{Binding Source}" Foreground="#596783" FontSize="10" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
-                        <TextBlock Grid.Column="2" Text="{Binding HealthText}" Foreground="#7CFFB2" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding HealthText}" Foreground="{Binding HealthBrush}" FontWeight="Bold" VerticalAlignment="Center" Margin="8,0"/>
                         <Button Grid.Column="3" Content="{Binding FavoriteText}" Tag="{Binding}" Width="38" Background="#25304A" Click="OnFavoriteButtonClick"/>
                       </Grid>
                     </Border>
@@ -232,9 +250,11 @@
                 </ListBox.ItemTemplate>
               </ListBox>
               <Grid Grid.Row="2" Margin="6,8,6,4">
-                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Button Content="⚡ تست سریع همین فیلتر" Margin="0,0,6,0" Background="#2D374F" Click="OnQuickTestVisible"/>
-                <Button Grid.Column="1" Content="🖥 هاید/آنهاید آیکون‌ها" Margin="6,0,0,0" Background="#2D374F" Click="OnToggleIcons"/>
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="⚡ تست فیلتر" Margin="0,0,5,0" Background="#2D374F" Click="OnQuickTestVisible"/>
+                <Button Grid.Column="1" Content="⏹ Stop" Margin="5,0" Background="#5A2430" Click="OnStopPlayback"/>
+                <Button Grid.Column="2" Content="↻ Restart" Margin="5,0" Background="#2D374F" Click="OnRestartPlayback"/>
+                <Button Grid.Column="3" Content="🖥 آیکون‌ها" Margin="5,0,0,0" Background="#2D374F" Click="OnToggleIcons"/>
               </Grid>
             </Grid>
           </Border>

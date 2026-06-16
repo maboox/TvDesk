@@ -130,18 +130,35 @@ public sealed class AppController : IDisposable
         }
     }
 
-    public void PauseVideo(string reason)
+    /// <summary>فقط تصویر را فریز می‌کند؛ VLC پشت overlay همچنان پخش/بافر می‌کند و نت مصرف می‌شود.</summary>
+    public void FreezeVisual(string reason)
     {
-        Logger.Log($"PauseVideo: {reason}");
-        Playback.PauseKeepFrame();
-        SetStatus($"⏸ مکث تصویر: {reason}");
+        Logger.Log($"FreezeVisual: {reason}");
+        _desktop?.FreezeFrame();
+        SetStatus($"⏸ تصویر فریز شد: {reason}");
     }
 
-    public void ResumeVideo(string reason)
+    public void UnfreezeVisual(string reason)
     {
-        Logger.Log($"ResumeVideo: {reason}");
-        Playback.Resume();
-        SetStatus($"▶ ادامه تصویر: {reason}");
+        Logger.Log($"UnfreezeVisual: {reason}");
+        _desktop?.UnfreezeFrame();
+        SetStatus($"▶ تصویر آزاد شد: {reason}");
+    }
+
+    /// <summary>Stop واقعی؛ برای وقتی کاربر نمی‌خواهد نت مصرف شود.</summary>
+    public void StopPlayback()
+    {
+        Logger.Log("StopPlayback requested by user");
+        Playback.Stop();
+        SetStatus("⏹ پخش کامل متوقف شد؛ مصرف نت قطع شد");
+    }
+
+    public async Task RestartPlaybackAsync()
+    {
+        Logger.Log("RestartPlayback requested by user");
+        _desktop?.UnfreezeFrame();
+        if (!string.IsNullOrWhiteSpace(Settings.LastChannelUrl))
+            await PlayAsync(Settings.LastChannelUrl!, Settings.LastChannelName ?? "");
     }
 
     public void ShowControl()

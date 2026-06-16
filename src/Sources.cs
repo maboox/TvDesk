@@ -23,6 +23,7 @@ public sealed class Channel
     public bool? IsAlive { get; set; }
     public string FavoriteText => IsFavorite ? "★" : "☆";
     public string HealthText => IsAlive == true ? "✓" : IsAlive == false ? "×" : "";
+    public string HealthBrush => IsAlive == true ? "#7CFFB2" : IsAlive == false ? "#FF6B7A" : "#596783";
     public override string ToString() => Name;
 }
 
@@ -68,8 +69,8 @@ public static class M3uParser
             {
                 current.Url = line;
                 if (string.IsNullOrWhiteSpace(current.Name)) current.Name = line;
-                if (string.IsNullOrWhiteSpace(current.Group)) current.Group = "بدون دسته";
-                if (string.IsNullOrWhiteSpace(current.Country)) current.Country = GuessCountryFromSource(sourceName);
+                current.Group = NormalizeGroup(current.Group);
+                current.Country = NormalizeCountry(string.IsNullOrWhiteSpace(current.Country) ? GuessCountryFromSource(sourceName) : current.Country);
                 channels.Add(current);
                 current = null;
             }
@@ -77,9 +78,56 @@ public static class M3uParser
         return channels;
     }
 
+    public static string NormalizeGroup(string? group)
+    {
+        string g = (group ?? "").Trim();
+        if (g.Length == 0) return "بدون دسته";
+        string l = g.ToLowerInvariant();
+        return l switch
+        {
+            "music" or "موسیقی" => "Music",
+            "news" or "اخبار" => "News",
+            "sports" or "sport" or "ورزش" => "Sports",
+            "movies" or "movie" or "فیلم" => "Movies",
+            "kids" or "children" or "کودک" => "Kids",
+            "general" or "عمومی" => "General",
+            "documentary" or "مستند" => "Documentary",
+            "education" or "آموزشی" => "Education",
+            "entertainment" or "سرگرمی" => "Entertainment",
+            "religious" or "مذهبی" => "Religious",
+            _ => g
+        };
+    }
+
+    public static string NormalizeCountry(string? country)
+    {
+        string c = (country ?? "").Trim();
+        if (c.Length == 0) return "";
+        string l = c.ToLowerInvariant();
+        return l switch
+        {
+            "ir" or "iran" or "ایران" => "Iran",
+            "de" or "deu" or "germany" or "deutschland" or "آلمان" => "Germany",
+            "us" or "usa" or "united states" or "united states of america" or "america" => "United States",
+            "gb" or "uk" or "united kingdom" or "england" => "United Kingdom",
+            "fr" or "fra" or "france" => "France",
+            "it" or "ita" or "italy" => "Italy",
+            "es" or "esp" or "spain" => "Spain",
+            "tr" or "turkey" or "turkiye" or "ترکیه" => "Turkey",
+            "ru" or "russia" => "Russia",
+            "cn" or "china" => "China",
+            "jp" or "japan" => "Japan",
+            "kr" or "korea" or "south korea" => "South Korea",
+            "ca" or "canada" => "Canada",
+            "br" or "brazil" => "Brazil",
+            "in" or "india" => "India",
+            _ => c.Length <= 3 ? c.ToUpperInvariant() : c
+        };
+    }
+
     private static string GuessCountryFromSource(string sourceName)
     {
-        if (sourceName.Contains("ایران") || sourceName.Contains("Iran", StringComparison.OrdinalIgnoreCase)) return "IR";
+        if (sourceName.Contains("ایران") || sourceName.Contains("Iran", StringComparison.OrdinalIgnoreCase)) return "Iran";
         return "";
     }
 }
@@ -160,9 +208,9 @@ public static class Telewebion
     private static Channel C(string name, string id) => new()
     {
         Name = name,
-        Url = "https://cdnw.telewebion.com/" + id + "/live/playlist.m3u8",
-        Group = "تلوبیون",
-        Country = "IR",
+        Url = "https://ncdn.telewebion.ir/" + id + "/live/playlist.m3u8",
+        Group = "Telewebion",
+        Country = "Iran",
         Source = "Telewebion"
     };
 

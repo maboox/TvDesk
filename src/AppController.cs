@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using TvDesk.Behaviors;
@@ -40,6 +41,8 @@ public sealed class AppController : IDisposable
     private TrayIconManager? _tray;
     private FocusFullscreenWatcher? _watcher;
     private HotkeyManager? _hotkeys;
+    private readonly SemaphoreSlim _playGate = new(1, 1);
+    private int _playRequestId;
 
     public AppController() => Instance = this;
 
@@ -112,13 +115,33 @@ public sealed class AppController : IDisposable
 
     public async Task PlayAsync(string input, string name)
     {
+        input = SourceResolver.SanitizeInput(input);
         if (string.IsNullOrWhiteSpace(input)) return;
+
+        int requestId = Interlocked.Increment(ref _playRequestId);
+        await _playGate.WaitAsync();
         try
         {
+            if (requestId != _playRequestId)
+            {
+                Logger.Log($"PlayAsync skipped stale request before resolve: {name} {input}");
+                return;
+            }
+
             string label = string.IsNullOrWhiteSpace(name) ? input : name;
             SetStatus($"\u23F3 در حال لود: {label}…");
             string playable = await SourceResolver.ResolveAsync(input, Settings.Quality);
+
+            if (requestId != _playRequestId)
+            {
+                Logger.Log($"PlayAsync skipped stale request after resolve: {name} {input}");
+                return;
+            }
+
+            _desktop?.UnfreezeFrame();
+            await Task.Delay(120); // فرصت کوتاه برای رها شدن خروجی/مدیای قبلی VLC
             Playback.Play(playable);
+
             Settings.LastChannelUrl = input;
             Settings.LastChannelName = name;
             SettingsStore.Save(Settings);
@@ -127,6 +150,10 @@ public sealed class AppController : IDisposable
         {
             SetStatus($"\u2715 خطا در لود: {name}");
             Logger.Log($"PlayAsync failed for {input}", ex);
+        }
+        finally
+        {
+            _playGate.Release();
         }
     }
 
@@ -148,6 +175,7 @@ public sealed class AppController : IDisposable
     /// <summary>Stop واقعی؛ برای وقتی کاربر نمی‌خواهد نت مصرف شود.</summary>
     public void StopPlayback()
     {
+        Interlocked.Increment(ref _playRequestId);
         Logger.Log("StopPlayback requested by user");
         Playback.Stop();
         SetStatus("⏹ پخش کامل متوقف شد؛ مصرف نت قطع شد");

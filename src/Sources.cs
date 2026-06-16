@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -253,9 +254,17 @@ public sealed class ChannelLibrary
 
 public static class SourceResolver
 {
+    public static string SanitizeInput(string input)
+    {
+        input = (input ?? "").Trim();
+        // کاربر/Markdown گاهی آخر لینک ':' یا punctuation اضافه می‌کند: youtube.com/live/ID:
+        while (input.Length > 0 && ":،,؛;".Contains(input[^1])) input = input[..^1].Trim();
+        return input;
+    }
+
     public static async Task<string> ResolveAsync(string input, string quality = "Auto")
     {
-        input = input.Trim();
+        input = SanitizeInput(input);
         if (string.IsNullOrEmpty(input)) throw new ArgumentException("empty input");
         if (File.Exists(input)) return input;
         if (IsDirectStream(input)) return input;
@@ -279,6 +288,7 @@ public static class SourceResolver
 
     public static async Task<string> ResolveWithYtDlpAsync(string url, string quality)
     {
+        url = SanitizeInput(url);
         string format = quality switch
         {
             "High" => "best[height<=1080]/best",
@@ -290,21 +300,35 @@ public static class SourceResolver
         string exe = Path.Combine(AppContext.BaseDirectory, "yt-dlp.exe");
         if (!File.Exists(exe)) exe = "yt-dlp.exe";
 
-        var psi = new System.Diagnostics.ProcessStartInfo
+        var psi = new ProcessStartInfo
         {
             FileName = exe,
-            Arguments = $@"-g -f ""{format}"" ""{url}""",
+            Arguments = $@"--no-playlist --force-ipv4 --socket-timeout 12 -g -f ""{format}"" ""{url}""",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
 
-        using var proc = System.Diagnostics.Process.Start(psi) ?? throw new InvalidOperationException("yt-dlp not found");
-        string output = await proc.StandardOutput.ReadToEndAsync();
-        await proc.WaitForExitAsync();
-        var first = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(first)) throw new InvalidOperationException("yt-dlp returned no stream URL");
+        using var proc = Process.Start(psi) ?? throw new InvalidOperationException("yt-dlp not found");
+        Task<string> stdoutTask = proc.StandardOutput.ReadToEndAsync();
+        Task<string> stderrTask = proc.StandardError.ReadToEndAsync();
+        Task waitTask = proc.WaitForExitAsync();
+        Task finished = await Task.WhenAny(waitTask, Task.Delay(TimeSpan.FromSeconds(25)));
+        if (finished != waitTask)
+        {
+            try { proc.Kill(true); } catch { }
+            throw new TimeoutException("yt-dlp timed out while resolving stream URL");
+        }
+        string output = await stdoutTask;
+        string error = await stderrTask;
+        TvDesk.Logger.Log($"yt-dlp exit={proc.ExitCode} url={url}");
+
+        var first = output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .FirstOrDefault(x => x.StartsWith("http", StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(first))
+            throw new InvalidOperationException("yt-dlp returned no stream URL" + (string.IsNullOrWhiteSpace(error) ? "" : ": " + error.Trim().Split('\n').FirstOrDefault()));
         return first.Trim();
     }
 }

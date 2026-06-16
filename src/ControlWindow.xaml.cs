@@ -97,14 +97,32 @@ public partial class ControlWindow : Window
 
     private void RebuildFilters()
     {
-        var current = GroupCombo.SelectedItem as string ?? "همه / All";
-        var filters = new List<string> { "همه / All" };
-        filters.AddRange(_channels.Select(c => c.Group).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x));
-        filters.AddRange(_channels.Select(c => c.Country).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => "Country: " + x).Distinct().OrderBy(x => x));
-        filters.AddRange(_channels.Select(c => c.Source).Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => "Source: " + x).Distinct().OrderBy(x => x));
-        GroupCombo.ItemsSource = filters;
-        GroupCombo.SelectedItem = filters.Contains(current) ? current : filters[0];
+        string curCountry = CountryCombo.SelectedItem as string ?? "همه کشورها";
+        string curGenre = GenreCombo.SelectedItem as string ?? "همه سبک‌ها";
+        string curSource = SourceCombo.SelectedItem as string ?? "همه سورس‌ها";
+
+        var countries = new List<string> { "همه کشورها" };
+        countries.AddRange(_channels.Select(c => NormalizeFilterValue(c.Country)).Where(x => x.Length > 0).Distinct().OrderBy(x => x));
+        CountryCombo.ItemsSource = countries;
+        CountryCombo.SelectedItem = countries.Contains(curCountry) ? curCountry : countries[0];
+
+        var genres = new List<string> { "همه سبک‌ها" };
+        genres.AddRange(_channels.Select(c => NormalizeFilterValue(c.Group)).Where(x => x.Length > 0).Distinct().OrderBy(x => x));
+        GenreCombo.ItemsSource = genres;
+        GenreCombo.SelectedItem = genres.Contains(curGenre) ? curGenre : genres[0];
+
+        var sources = new List<string> { "همه سورس‌ها" };
+        sources.AddRange(_channels.Select(c => NormalizeFilterValue(c.Source)).Where(x => x.Length > 0).Distinct().OrderBy(x => x));
+        SourceCombo.ItemsSource = sources;
+        SourceCombo.SelectedItem = sources.Contains(curSource) ? curSource : sources[0];
+
+        if (HealthCombo.SelectedIndex < 0) HealthCombo.SelectedIndex = 0;
     }
+
+    private static string NormalizeFilterValue(string? value) => (value ?? "").Trim();
+
+    private static string HealthTagOf(ComboBox combo)
+        => (combo.SelectedItem as ComboBoxItem)?.Tag as string ?? "all";
 
     public void RefreshFavoriteStates()
     {
@@ -124,12 +142,20 @@ public partial class ControlWindow : Window
             || (c.Country ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)))
             return false;
 
-        string group = GroupCombo.SelectedItem as string ?? "همه / All";
-        if (group != "همه / All")
+        string country = CountryCombo.SelectedItem as string ?? "همه کشورها";
+        if (country != "همه کشورها" && NormalizeFilterValue(c.Country) != country) return false;
+
+        string genre = GenreCombo.SelectedItem as string ?? "همه سبک‌ها";
+        if (genre != "همه سبک‌ها" && NormalizeFilterValue(c.Group) != genre) return false;
+
+        string source = SourceCombo.SelectedItem as string ?? "همه سورس‌ها";
+        if (source != "همه سورس‌ها" && NormalizeFilterValue(c.Source) != source) return false;
+
+        switch (HealthTagOf(HealthCombo))
         {
-            if (group.StartsWith("Country: ")) { if (c.Country != group[9..]) return false; }
-            else if (group.StartsWith("Source: ")) { if (c.Source != group[8..]) return false; }
-            else if (c.Group != group) return false;
+            case "alive": if (c.IsAlive != true) return false; break;
+            case "dead": if (c.IsAlive != false) return false; break;
+            case "unknown": if (c.IsAlive != null) return false; break;
         }
 
         if (FavOnly.IsChecked == true && !c.IsFavorite) return false;
@@ -137,7 +163,7 @@ public partial class ControlWindow : Window
     }
 
     private void OnSearchChanged(object sender, TextChangedEventArgs e) => _view?.Refresh();
-    private void OnGroupChanged(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
+    private void OnFilterChanged(object sender, SelectionChangedEventArgs e) => _view?.Refresh();
     private void OnFavOnlyChanged(object sender, RoutedEventArgs e) => _view?.Refresh();
 
     private async void OnChannelSelected(object sender, SelectionChangedEventArgs e)
@@ -238,6 +264,18 @@ public partial class ControlWindow : Window
         if (_loadingUi) return;
         if (QualityCombo.SelectedItem is ComboBoxItem item && item.Tag is string q)
             AppController.Instance.SetQuality(q);
+    }
+
+    private void OnStopPlayback(object sender, RoutedEventArgs e)
+    {
+        AppController.Instance.StopPlayback();
+        StatusText.Text = "⏹ پخش کامل متوقف شد؛ مصرف اینترنت قطع شد";
+    }
+
+    private async void OnRestartPlayback(object sender, RoutedEventArgs e)
+    {
+        StatusText.Text = "↻ شروع دوباره…";
+        await AppController.Instance.RestartPlaybackAsync();
     }
 
     private void OnToggleIcons(object sender, RoutedEventArgs e) => AppController.Instance.ToggleDesktopIcons();

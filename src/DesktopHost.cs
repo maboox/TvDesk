@@ -12,8 +12,7 @@ namespace TvDesk.UI;
 public sealed class DesktopHost : Form
 {
     private readonly Label _statusLabel;
-    private readonly Panel _dimOverlay;
-    private double _dim;
+    private readonly PictureBox _freezeOverlay;
 
     public DesktopHost()
     {
@@ -25,24 +24,16 @@ public sealed class DesktopHost : Form
         var b = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
         Bounds = b;
 
-        // تاریکی مستقل از VLC. این overlay روی پنجرهٔ والپیپر می‌نشیند تا حتی با wingdi هم کار کند.
-        _dimOverlay = new Panel
+        _freezeOverlay = new PictureBox
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.Transparent,
+            BackColor = Color.Black,
+            SizeMode = PictureBoxSizeMode.StretchImage,
             Visible = false,
             Enabled = false
         };
-        _dimOverlay.Paint += (_, e) =>
-        {
-            int alpha = Math.Clamp((int)(_dim * 255), 0, 220);
-            if (alpha <= 0) return;
-            using var brush = new SolidBrush(Color.FromArgb(alpha, 0, 0, 0));
-            e.Graphics.FillRectangle(brush, _dimOverlay.ClientRectangle);
-        };
-        Controls.Add(_dimOverlay);
+        Controls.Add(_freezeOverlay);
 
-        // صفحهٔ وضعیت اولیه. بعد از شروع پخش دیگر در حالت pause/قطع روی ویدیو نمی‌آید تا فریم آخر باقی بماند.
         _statusLabel = new Label
         {
             Dock = DockStyle.Fill,
@@ -66,24 +57,40 @@ public sealed class DesktopHost : Form
         WorkerWHelper.SetBounds(handle, 0, 0, b.Width, b.Height);
     }
 
-    public void BindPlayback(PlaybackEngine engine)
-    {
-        engine.SetVideoHandle(Handle);
-    }
+    public void BindPlayback(PlaybackEngine engine) => engine.SetVideoHandle(Handle);
 
-    public void SetDim(double dim)
+    /// <summary>فریم فعلی دسکتاپ را به‌صورت overlay نگه می‌دارد؛ stream می‌تواند پشت آن ادامه پیدا کند.</summary>
+    public void FreezeFrame()
     {
         if (IsDisposed) return;
-        if (IsHandleCreated && InvokeRequired) { BeginInvoke(new Action(() => SetDim(dim))); return; }
-        _dim = Math.Clamp(dim, 0, 0.85);
-        _dimOverlay.Visible = _dim > 0.001;
-        if (_dimOverlay.Visible)
+        if (IsHandleCreated && InvokeRequired) { BeginInvoke(new Action(FreezeFrame)); return; }
+        try
         {
-            _dimOverlay.BringToFront();
+            var rect = RectangleToScreen(ClientRectangle);
+            if (rect.Width <= 0 || rect.Height <= 0) return;
+            var bmp = new Bitmap(rect.Width, rect.Height);
+            using (var g = Graphics.FromImage(bmp))
+                g.CopyFromScreen(rect.Left, rect.Top, 0, 0, rect.Size, CopyPixelOperation.SourceCopy);
+            var old = _freezeOverlay.Image;
+            _freezeOverlay.Image = bmp;
+            old?.Dispose();
+            _freezeOverlay.Visible = true;
+            _freezeOverlay.BringToFront();
             if (_statusLabel.Visible) _statusLabel.BringToFront();
+            TvDesk.Logger.Log("Desktop frame frozen (overlay on, playback continues)");
         }
-        _dimOverlay.Invalidate();
-        TvDesk.Logger.Log($"Desktop dim set = {_dim:0.00}");
+        catch (Exception ex) { TvDesk.Logger.Log("FreezeFrame failed", ex); }
+    }
+
+    public void UnfreezeFrame()
+    {
+        if (IsDisposed) return;
+        if (IsHandleCreated && InvokeRequired) { BeginInvoke(new Action(UnfreezeFrame)); return; }
+        _freezeOverlay.Visible = false;
+        var old = _freezeOverlay.Image;
+        _freezeOverlay.Image = null;
+        old?.Dispose();
+        TvDesk.Logger.Log("Desktop frame unfrozen");
     }
 
     public void ShowStatus(string text)
@@ -100,6 +107,6 @@ public sealed class DesktopHost : Form
         if (IsDisposed) return;
         if (IsHandleCreated && InvokeRequired) { BeginInvoke(new Action(HideStatus)); return; }
         _statusLabel.Visible = false;
-        if (_dimOverlay.Visible) _dimOverlay.BringToFront();
+        if (_freezeOverlay.Visible) _freezeOverlay.BringToFront();
     }
 }

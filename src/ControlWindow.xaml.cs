@@ -121,7 +121,7 @@ public partial class ControlWindow : Window
 
     private static string NormalizeFilterValue(string? value) => (value ?? "").Trim();
 
-    private static string HealthTagOf(ComboBox combo)
+    private static string HealthTagOf(System.Windows.Controls.ComboBox combo)
         => (combo.SelectedItem as ComboBoxItem)?.Tag as string ?? "all";
 
     public void RefreshFavoriteStates()

@@ -12,7 +12,6 @@ using TvDesk.UI;
 
 namespace TvDesk;
 
-/// <summary>هماهنگ‌کنندهٔ مرکزی اپ: والپیپر، پنل کنترل، تری، رفتارهای هوشمند و هات‌کی‌ها.</summary>
 public sealed class AppController : IDisposable
 {
     public static AppController Instance { get; private set; } = null!;
@@ -28,9 +27,7 @@ public sealed class AppController : IDisposable
         try { StatusChanged?.Invoke(message); } catch { }
         try
         {
-            // نکته: بعد از شروع پخش، دیگر صفحهٔ وضعیت را روی دسکتاپ نمی‌آوریم تا آخرین فریم/ویدیو باقی بماند.
-            // برای لود اولیه یا خطاهای قبل از پخش، نمایش وضعیت مجاز است.
-            if (message.Contains("در حال پخش") || message.Contains("مکث") || message.Contains("بافر"))
+            if (message.Contains("در حال پخش") || message.Contains("ادامه") || message.Contains("مکث") || message.Contains("بافر"))
                 _desktop?.HideStatus();
             else if (!(Playback?.HasEverPlayed ?? false))
                 _desktop?.ShowStatus(message);
@@ -62,7 +59,6 @@ public sealed class AppController : IDisposable
             _desktop.Show();
             _desktop.AttachToDesktop();
             _desktop.BindPlayback(Playback);
-            _desktop.SetDim(Settings.WallpaperDim);
 
             Playback.SetVolume(Settings.Volume);
             Playback.SetMuted(Settings.Muted);
@@ -86,15 +82,15 @@ public sealed class AppController : IDisposable
 
             AutoStartManager.Apply(Settings.AutoStart);
 
-            Logger.Log("Loading channel library (IPTV + Telewebion)");
-            await Library.LoadAsync(Settings.PlaylistRefreshDays);
-            Logger.Log($"Loaded {Library.Channels.Count} channels");
-            _control.PopulateChannels(Library.Channels);
+            await ReloadLibraryAsync();
 
-            if (!string.IsNullOrWhiteSpace(Settings.LastChannelUrl))
-                await PlayAsync(Settings.LastChannelUrl!, Settings.LastChannelName ?? "");
-            else if (Library.Channels.Count > 0)
-                await PlayAsync(Library.Channels[0].Url, Library.Channels[0].Name);
+            if (Settings.OnboardingComplete)
+            {
+                if (!string.IsNullOrWhiteSpace(Settings.LastChannelUrl))
+                    await PlayAsync(Settings.LastChannelUrl!, Settings.LastChannelName ?? "");
+                else if (Library.Channels.Count > 0)
+                    await PlayAsync(Library.Channels[0].Url, Library.Channels[0].Name);
+            }
 
             Logger.Log("Startup complete");
         }
@@ -105,13 +101,22 @@ public sealed class AppController : IDisposable
         }
     }
 
+    public async Task ReloadLibraryAsync()
+    {
+        Logger.Log("Loading channel library");
+        await Library.LoadAsync(Settings);
+        Logger.Log($"Loaded {Library.Channels.Count} channels");
+        _control?.PopulateChannels(Library.Channels);
+        SetStatus($"کتابخانه آماده است: {Library.Channels.Count} کانال");
+    }
+
     public async Task PlayAsync(string input, string name)
     {
         if (string.IsNullOrWhiteSpace(input)) return;
         try
         {
             string label = string.IsNullOrWhiteSpace(name) ? input : name;
-            SetStatus($"\u23F3 در حال لود کانال: {label}…");
+            SetStatus($"\u23F3 در حال لود: {label}…");
             string playable = await SourceResolver.ResolveAsync(input, Settings.Quality);
             Playback.Play(playable);
             Settings.LastChannelUrl = input;
@@ -120,29 +125,23 @@ public sealed class AppController : IDisposable
         }
         catch (Exception ex)
         {
-            SetStatus($"\u2715 خطا در لود کانال: {name}");
+            SetStatus($"\u2715 خطا در لود: {name}");
             Logger.Log($"PlayAsync failed for {input}", ex);
         }
     }
 
-    public async void ResumeLast()
+    public void PauseVideo(string reason)
     {
-        if (!string.IsNullOrWhiteSpace(Settings.LastChannelUrl))
-            await PlayAsync(Settings.LastChannelUrl!, Settings.LastChannelName ?? "");
-    }
-
-    public void PauseForFullscreen()
-    {
-        Logger.Log("PauseForFullscreen");
+        Logger.Log($"PauseVideo: {reason}");
         Playback.PauseKeepFrame();
-        SetStatus("⏸ مکث برای فول‌اسکرین");
+        SetStatus($"⏸ مکث تصویر: {reason}");
     }
 
-    public void ResumeAfterFullscreen()
+    public void ResumeVideo(string reason)
     {
-        Logger.Log("ResumeAfterFullscreen");
+        Logger.Log($"ResumeVideo: {reason}");
         Playback.Resume();
-        SetStatus("▶ ادامهٔ پخش");
+        SetStatus($"▶ ادامه تصویر: {reason}");
     }
 
     public void ShowControl()
@@ -169,13 +168,6 @@ public sealed class AppController : IDisposable
         SettingsStore.Save(Settings);
     }
 
-    public void SetDim(double dim)
-    {
-        Settings.WallpaperDim = Math.Clamp(dim, 0, 0.85);
-        _desktop?.SetDim(Settings.WallpaperDim);
-        SettingsStore.Save(Settings);
-    }
-
     public void SetQuality(string quality)
     {
         Settings.Quality = quality;
@@ -193,6 +185,15 @@ public sealed class AppController : IDisposable
         _control?.RefreshFavoriteStates();
     }
 
+    public void AddPlaylistSource(string name, string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+        Settings.CustomPlaylistSources.RemoveAll(x => x.Url == url);
+        Settings.CustomPlaylistSources.Add(new FavoriteItem { Name = string.IsNullOrWhiteSpace(name) ? "Custom IPTV" : name, Url = url });
+        SettingsStore.Save(Settings);
+        Logger.Log($"Added custom playlist source: {name} {url}");
+    }
+
     public void ToggleFavorite(Channel c)
     {
         if (string.IsNullOrWhiteSpace(c.Url)) return;
@@ -200,13 +201,13 @@ public sealed class AppController : IDisposable
         if (c.IsFavorite)
         {
             if (!Settings.FavoriteUrls.Contains(c.Url)) Settings.FavoriteUrls.Add(c.Url);
-            if (!Settings.FavoriteItems.Any(x => x.Url == c.Url) && (c.Source == "Custom Favorite" || c.Group == "منتخب‌های دستی"))
+            if (!Settings.FavoriteItems.Any(x => x.Url == c.Url) && c.Source == "Custom Favorite")
                 Settings.FavoriteItems.Add(new FavoriteItem { Name = c.Name, Url = c.Url });
         }
         else
         {
             Settings.FavoriteUrls.Remove(c.Url);
-            Settings.FavoriteItems.RemoveAll(x => x.Url == c.Url);
+            Settings.FavoriteItems.RemoveAll(x => x.Url == c.Url && c.Source == "Custom Favorite");
         }
         SettingsStore.Save(Settings);
     }

@@ -17,7 +17,8 @@ public sealed class FocusFullscreenWatcher : IDisposable
     struct RECT { public int Left, Top, Right, Bottom; }
 
     private readonly DispatcherTimer _timer;
-    private bool _stoppedForFullscreen;
+    private bool _pausedForFullscreen;
+    private bool _pausedForFocus;
 
     public FocusFullscreenWatcher()
     {
@@ -37,28 +38,44 @@ public sealed class FocusFullscreenWatcher : IDisposable
         GetWindowThreadProcessId(fg, out uint fgPid);
         bool ourApp = fgPid == myPid;
         bool isShell = fg == GetShellWindow() || fg == IntPtr.Zero;
+        bool focusLost = !ourApp && !isShell;
 
         bool fullscreen = false;
-        if (!ourApp && !isShell && GetWindowRect(fg, out RECT r))
+        if (focusLost && GetWindowRect(fg, out RECT r))
         {
             int w = r.Right - r.Left, h = r.Bottom - r.Top;
             fullscreen = w >= (int)System.Windows.SystemParameters.PrimaryScreenWidth
                       && h >= (int)System.Windows.SystemParameters.PrimaryScreenHeight;
         }
 
-        if (ctrl.Settings.StopOnFullscreen && fullscreen)
+        // تصویر: fullscreen اولویت دارد، بعد focus. هر کدام مستقل از صدا قابل تنظیم‌اند.
+        if (ctrl.Settings.PauseVideoOnFullscreen && fullscreen)
         {
-            if (!_stoppedForFullscreen) { ctrl.PauseForFullscreen(); _stoppedForFullscreen = true; }
-            return;
+            if (!_pausedForFullscreen) { ctrl.PauseVideo("fullscreen"); _pausedForFullscreen = true; }
         }
-        if (_stoppedForFullscreen && !fullscreen)
+        else if (_pausedForFullscreen && !fullscreen)
         {
-            _stoppedForFullscreen = false;
-            ctrl.ResumeAfterFullscreen();
+            _pausedForFullscreen = false;
+            ctrl.ResumeVideo("fullscreen ended");
         }
 
-        if (ctrl.Settings.MuteOnFocusLoss && !ctrl.Settings.Muted)
-            ctrl.Playback.SetMuted(!ourApp && !isShell);
+        if (!_pausedForFullscreen && ctrl.Settings.PauseVideoOnFocusLoss && focusLost)
+        {
+            if (!_pausedForFocus) { ctrl.PauseVideo("focus lost"); _pausedForFocus = true; }
+        }
+        else if (_pausedForFocus && (!focusLost || _pausedForFullscreen))
+        {
+            _pausedForFocus = false;
+            if (!_pausedForFullscreen) ctrl.ResumeVideo("focus returned");
+        }
+
+        // صدا: اگر کاربر دستی mute کرده، آن را دست نمی‌زنیم.
+        if (!ctrl.Settings.Muted)
+        {
+            bool shouldMute = (ctrl.Settings.MuteAudioOnFullscreen && fullscreen)
+                           || (ctrl.Settings.MuteAudioOnFocusLoss && focusLost);
+            ctrl.Playback.SetMuted(shouldMute);
+        }
     }
 
     public void Dispose() => _timer.Stop();

@@ -21,9 +21,9 @@ public sealed class PlaybackEngine : IDisposable
         try
         {
             Core.Initialize();
-            // دکد نرم‌افزاری: روی پنجرهٔ والپیپر (فرزند Progman) دکد سخت‌افزاری D3D ناپایدار است و کرش می‌دهد.
-            // vout=direct3d9 پایدارتر از d3d11 برای رندر در پنجرهٔ والپیپر (درغیر این صورت d3d11 هنگام شروع پخش کرش می‌کند)
-            _libVLC = new LibVLC("--no-osd", "--network-caching=2000", "--quiet", "--no-video-title-show", "--avcodec-hw=none", "--vout=direct3d9");
+            // نسخهٔ نجات/دیباگ: هیچ مسیر D3D استفاده نمی‌کنیم. wingdi کندتر است، ولی برای HWNDهای reparent شدهٔ Explorer
+            // کم‌ریسک‌ترین خروجی VLC است و native crashهای بی‌لاگ D3D را دور می‌زند.
+            _libVLC = new LibVLC("--no-osd", "--network-caching=2000", "--quiet", "--no-video-title-show", "--avcodec-hw=none", "--vout=wingdi", "--no-overlay");
             Player = new MediaPlayer(_libVLC) { EnableHardwareDecoding = false };
             HookEvents();
             TvDesk.Logger.Log("LibVLC initialized successfully");
@@ -103,16 +103,8 @@ public sealed class PlaybackEngine : IDisposable
     /// <summary>تاریک‌کردن والپیپر با کاهش brightness (0..2 والد، 1=عادی).</summary>
     public void SetBrightness(float brightness)
     {
-        if (Player == null) return;
-        try
-        {
-            Player.SetAdjustInt(VideoAdjustOption.Enable, 1);
-            Player.SetAdjustFloat(VideoAdjustOption.Brightness, Math.Clamp(brightness, 0f, 2f));
-        }
-        catch (Exception ex)
-        {
-            TvDesk.Logger.Log("SetBrightness failed", ex);
-        }
+        // موقتاً غیرفعال: VideoAdjust روی بعضی خروجی‌های VLC/والپیپر می‌تواند native crash بدهد.
+        TvDesk.Logger.Log($"SetBrightness skipped in rescue build: {brightness:0.00}");
     }
 
     public void Dispose()

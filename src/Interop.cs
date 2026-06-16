@@ -1,9 +1,10 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace TvDesk.Interop;
 
-/// <summary>ترفند WorkerW برای نشاندن پنجرهٔ ویدیو پشت آیکون‌های دسکتاپ.</summary>
+/// <summary>توابع Win32 برای نشاندن پنجرهٔ TvDesk روی دسکتاپ.</summary>
 public static class WorkerWHelper
 {
     [DllImport("user32.dll", SetLastError = true)]
@@ -17,42 +18,103 @@ public static class WorkerWHelper
     static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
     [DllImport("user32.dll")]
+    static extern bool EnumChildWindows(IntPtr parent, EnumWindowsProc cb, IntPtr lParam);
+
+    [DllImport("user32.dll")]
     static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? cls, string? win);
 
     [DllImport("user32.dll")]
     static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
     [DllImport("user32.dll")]
+    static extern IntPtr GetParent(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
     static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
         int X, int Y, int cx, int cy, uint uFlags);
 
-    delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")]
+    static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     [DllImport("user32.dll")]
-    static extern bool EnumChildWindows(IntPtr parent, EnumWindowsProc cb, IntPtr lParam);
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
-    [DllImport("user32.dll")]
-    static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    static extern bool UpdateWindow(IntPtr hWnd);
+
     [DllImport("user32.dll")]
     static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr", SetLastError = true)]
+    static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr", SetLastError = true)]
+    static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLong", SetLastError = true)]
+    static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLong", SetLastError = true)]
+    static extern int SetWindowLong32(IntPtr hWnd, int nIndex, int dwNewLong);
+
+    delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential)]
     struct RECT { public int left, top, right, bottom; }
 
-    /// <summary>ساختار درخت دسکتاپ (Progman و فرزندانش) را برای عیب‌یابی لاگ می‌کند.</summary>
-    public static void LogDesktopTree()
+    const int GWL_STYLE = -16;
+    const int GWL_EXSTYLE = -20;
+    const long WS_CHILD = 0x40000000L;
+    const long WS_POPUP = 0x80000000L;
+    const long WS_VISIBLE = 0x10000000L;
+    const long WS_EX_APPWINDOW = 0x00040000L;
+    const long WS_EX_TOOLWINDOW = 0x00000080L;
+    const long WS_EX_NOACTIVATE = 0x08000000L;
+
+    const int SW_SHOW = 5;
+    const uint SWP_NOSIZE = 0x0001;
+    const uint SWP_NOMOVE = 0x0002;
+    const uint SWP_NOACTIVATE = 0x0010;
+    const uint SWP_FRAMECHANGED = 0x0020;
+    const uint SWP_SHOWWINDOW = 0x0040;
+
+    static readonly IntPtr HWND_TOP = IntPtr.Zero;
+
+    static IntPtr GetWindowLongPtr(IntPtr hWnd, int index)
+        => IntPtr.Size == 8 ? GetWindowLongPtr64(hWnd, index) : new IntPtr(GetWindowLong32(hWnd, index));
+
+    static void SetWindowLongPtr(IntPtr hWnd, int index, IntPtr value)
+    {
+        if (IntPtr.Size == 8) SetWindowLongPtr64(hWnd, index, value);
+        else SetWindowLong32(hWnd, index, value.ToInt32());
+    }
+
+    static string ClassOf(IntPtr h)
+    {
+        var sb = new StringBuilder(256);
+        GetClassName(h, sb, sb.Capacity);
+        return sb.ToString();
+    }
+
+    static string RectOf(IntPtr h)
+    {
+        if (!GetWindowRect(h, out RECT r)) return "rect=?";
+        return $"({r.left},{r.top})-({r.right},{r.bottom})";
+    }
+
+    public static void LogDesktopTree(string phase)
     {
         try
         {
             IntPtr progman = FindWindow("Progman", null);
-            TvDesk.Logger.Log($"--- Desktop tree (Progman={progman}) ---");
+            TvDesk.Logger.Log($"--- Desktop tree {phase} (Progman={progman}) ---");
+            if (progman == IntPtr.Zero) return;
             EnumChildWindows(progman, (h, _) =>
             {
-                var sb = new System.Text.StringBuilder(256);
-                GetClassName(h, sb, sb.Capacity);
-                GetWindowRect(h, out RECT r);
-                TvDesk.Logger.Log($"  {h} '{sb}' vis={IsWindowVisible(h)} ({r.left},{r.top})-({r.right},{r.bottom})");
+                TvDesk.Logger.Log($"  {h} '{ClassOf(h)}' parent={GetParent(h)} vis={IsWindowVisible(h)} {RectOf(h)}");
                 return true;
             }, IntPtr.Zero);
             TvDesk.Logger.Log("--- end tree ---");
@@ -60,11 +122,12 @@ public static class WorkerWHelper
         catch (Exception ex) { TvDesk.Logger.Log("LogDesktopTree", ex); }
     }
 
-    public static IntPtr GetWorkerW()
+    static IntPtr GetClassicWorkerW()
     {
         IntPtr progman = FindWindow("Progman", null);
         TvDesk.Logger.Log($"Progman = {progman}");
-        // درخواست ساخت WorkerW پشت آیکون‌ها
+        if (progman == IntPtr.Zero) return IntPtr.Zero;
+
         SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, 0x0000, 1000, out _);
         SendMessageTimeout(progman, 0x052C, new IntPtr(0x0000000D), new IntPtr(0x00000001), 0x0000, 1000, out _);
 
@@ -73,60 +136,62 @@ public static class WorkerWHelper
         {
             IntPtr shellView = FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null);
             if (shellView != IntPtr.Zero)
-                workerw = FindWindowEx(IntPtr.Zero, tophandle, "WorkerW", null);
+            {
+                IntPtr sibling = FindWindowEx(IntPtr.Zero, tophandle, "WorkerW", null);
+                if (sibling != IntPtr.Zero) workerw = sibling;
+            }
             return true;
         }, IntPtr.Zero);
-
-        if (workerw != IntPtr.Zero)
-        {
-            TvDesk.Logger.Log($"WorkerW (top-level sibling) = {workerw}");
-            return workerw;
-        }
-
-        // ویندوز ۱۱ 24H2 (build 26xxx): WorkerW دیگر سطح‌بالا نیست، بلکه فرزند مستقیم Progman است.
-        IntPtr childWorkerW = FindWindowEx(progman, IntPtr.Zero, "WorkerW", null);
-        if (childWorkerW != IntPtr.Zero)
-            TvDesk.Logger.Log($"WorkerW (Progman child / 24H2) = {childWorkerW}");
-        return childWorkerW;
+        if (workerw != IntPtr.Zero) TvDesk.Logger.Log($"WorkerW classic sibling = {workerw}");
+        return workerw;
     }
 
-    /// <summary>پنجره را پشت آیکون‌ها می‌برد. اگر WorkerW پیدا نشد، fallback به Progman.</summary>
+    /// <summary>
+    /// Win11 24H2 در لاگ کاربر نشان داد SHELLDLL_DefView و WorkerW هر دو فرزند Progman هستند.
+    /// والد کردن به WorkerW در این ساختار نامرئی می‌شود. پس پنجرهٔ TvDesk را مستقیماً فرزند Progman می‌کنیم
+    /// و در z-order زیر SHELLDLL_DefView قرار می‌دهیم تا پشت آیکون‌ها ولی روی والپیپر دیده شود.
+    /// </summary>
     public static bool AttachToDesktop(IntPtr myWindowHandle)
     {
-        IntPtr workerw = GetWorkerW();
-        TvDesk.Logger.Log($"WorkerW = {workerw}");
-        LogDesktopTree();
-        if (workerw != IntPtr.Zero)
-        {
-            SetParent(myWindowHandle, workerw);
-            // بالای والپیپر بیاور تا حتماً دیده شود (در برخی نسخه‌های ۱۱ پیش‌فرض پشتِ لایهٔ والپیپر می‌ماند)
-            const uint SWP_NOSIZE2 = 0x0001, SWP_NOMOVE2 = 0x0002, SWP_NOACTIVATE2 = 0x0010;
-            SetWindowPos(myWindowHandle, IntPtr.Zero /* HWND_TOP */, 0, 0, 0, 0, SWP_NOSIZE2 | SWP_NOMOVE2 | SWP_NOACTIVATE2);
-            return true;
-        }
-
         IntPtr progman = FindWindow("Progman", null);
-        if (progman != IntPtr.Zero)
-        {
-            TvDesk.Logger.Log("WorkerW not found → fallback: والد کردن زیر Progman");
-            SetParent(myWindowHandle, progman);
-            // درست زیرِ آیکون‌ها (SHELLDLL_DefView) قرار می‌دهیم تا والپیپر پشت بماند و آیکون‌ها رویش دیده شوند.
-            // مهم: از HWND_BOTTOM استفاده نمی‌کنیم چون در ویندوز ۱۱ پنجره را پشتِ لایهٔ والپیپر می‌برد و نامرئی می‌شود.
-            const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010;
-            IntPtr defView = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
-            if (defView != IntPtr.Zero)
-                SetWindowPos(myWindowHandle, defView, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
-            return true;
-        }
+        TvDesk.Logger.Log($"AttachToDesktop: hwnd={myWindowHandle}, Progman={progman}");
+        if (progman == IntPtr.Zero) return false;
 
-        TvDesk.Logger.Log("نه WorkerW و نه Progman پیدا نشد — اتصال والپیپر ناموفق");
-        return false;
+        _ = GetClassicWorkerW();
+        LogDesktopTree("before attach");
+
+        long style = GetWindowLongPtr(myWindowHandle, GWL_STYLE).ToInt64();
+        long exStyle = GetWindowLongPtr(myWindowHandle, GWL_EXSTYLE).ToInt64();
+        TvDesk.Logger.Log($"Before attach style=0x{style:X}, ex=0x{exStyle:X}, parent={GetParent(myWindowHandle)}, vis={IsWindowVisible(myWindowHandle)} {RectOf(myWindowHandle)}");
+
+        style &= ~WS_POPUP;
+        style |= WS_CHILD | WS_VISIBLE;
+        exStyle &= ~WS_EX_APPWINDOW;
+        exStyle |= WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
+        SetWindowLongPtr(myWindowHandle, GWL_STYLE, new IntPtr(style));
+        SetWindowLongPtr(myWindowHandle, GWL_EXSTYLE, new IntPtr(exStyle));
+
+        IntPtr oldParent = SetParent(myWindowHandle, progman);
+        TvDesk.Logger.Log($"SetParent -> oldParent={oldParent}, newParent={GetParent(myWindowHandle)}");
+
+        IntPtr defView = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+        TvDesk.Logger.Log($"DefView sibling for z-order = {defView}; rescue mode uses HWND_TOP to guarantee visibility");
+        SetWindowPos(myWindowHandle, HWND_TOP, 0, 0, 0, 0,
+            SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+        ShowWindow(myWindowHandle, SW_SHOW);
+        UpdateWindow(myWindowHandle);
+
+        TvDesk.Logger.Log($"After attach style=0x{GetWindowLongPtr(myWindowHandle, GWL_STYLE).ToInt64():X}, ex=0x{GetWindowLongPtr(myWindowHandle, GWL_EXSTYLE).ToInt64():X}, parent={GetParent(myWindowHandle)}, vis={IsWindowVisible(myWindowHandle)} {RectOf(myWindowHandle)}");
+        LogDesktopTree("after attach");
+        return true;
     }
 
     public static void SetBounds(IntPtr hWnd, int x, int y, int w, int h)
     {
-        const uint SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040;
-        SetWindowPos(hWnd, IntPtr.Zero, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        SetWindowPos(hWnd, HWND_TOP, x, y, w, h, SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+        ShowWindow(hWnd, SW_SHOW);
+        UpdateWindow(hWnd);
+        TvDesk.Logger.Log($"SetBounds hwnd={hWnd} -> {x},{y},{w},{h}; insertAfter=HWND_TOP; vis={IsWindowVisible(hWnd)} {RectOf(hWnd)} parent={GetParent(hWnd)}");
     }
 }
 

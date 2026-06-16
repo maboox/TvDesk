@@ -1,6 +1,25 @@
+# Build outputs
 bin/
 obj/
 publish/
-tools/yt-dlp.exe
-*.user
+publish-single/
+*.zip
+*.nupkg
+
+# Local runtime files
+TvDesk.log
+settings.json
+cache/
+
+# IDE/editor
 .vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# OS
+.DS_Store
+Thumbs.db

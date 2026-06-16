@@ -59,6 +59,8 @@ public sealed class DesktopHost : Form
 
     public void BindPlayback(PlaybackEngine engine) => engine.SetVideoHandle(Handle);
 
+    public void PlaceBehindIcons() => WorkerWHelper.PlaceBehindDesktopIcons(Handle);
+
     /// <summary>فریم فعلی دسکتاپ را به‌صورت overlay نگه می‌دارد؛ stream می‌تواند پشت آن ادامه پیدا کند.</summary>
     public void FreezeFrame()
     {

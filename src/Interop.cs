@@ -186,12 +186,33 @@ public static class WorkerWHelper
         return true;
     }
 
+    public static void PlaceBehindDesktopIcons(IntPtr hWnd)
+    {
+        try
+        {
+            IntPtr progman = FindWindow("Progman", null);
+            IntPtr defView = progman != IntPtr.Zero ? FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null) : IntPtr.Zero;
+            if (defView != IntPtr.Zero)
+            {
+                SetWindowPos(hWnd, defView, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+                TvDesk.Logger.Log($"TvDesk placed behind desktop icons: hwnd={hWnd}, defView={defView}");
+            }
+            else
+            {
+                SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+                TvDesk.Logger.Log($"TvDesk placed HWND_TOP because DefView not found: hwnd={hWnd}");
+            }
+            ShowWindow(hWnd, SW_SHOW);
+            UpdateWindow(hWnd);
+        }
+        catch (Exception ex) { TvDesk.Logger.Log("PlaceBehindDesktopIcons failed", ex); }
+    }
+
     public static void SetBounds(IntPtr hWnd, int x, int y, int w, int h)
     {
         SetWindowPos(hWnd, HWND_TOP, x, y, w, h, SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-        ShowWindow(hWnd, SW_SHOW);
-        UpdateWindow(hWnd);
-        TvDesk.Logger.Log($"SetBounds hwnd={hWnd} -> {x},{y},{w},{h}; insertAfter=HWND_TOP; vis={IsWindowVisible(hWnd)} {RectOf(hWnd)} parent={GetParent(hWnd)}");
+        PlaceBehindDesktopIcons(hWnd);
+        TvDesk.Logger.Log($"SetBounds hwnd={hWnd} -> {x},{y},{w},{h}; insertAfter=behind-icons; vis={IsWindowVisible(hWnd)} {RectOf(hWnd)} parent={GetParent(hWnd)}");
     }
 }
 
@@ -237,18 +258,22 @@ public static class DesktopIcons
         return found;
     }
 
-    public static void Toggle()
+    public static bool Toggle()
     {
         IntPtr lv = GetDesktopListView();
-        if (lv == IntPtr.Zero) return;
+        if (lv == IntPtr.Zero) { TvDesk.Logger.Log("DesktopIcons.Toggle: list view not found"); return false; }
         bool visible = IsWindowVisible(lv);
-        ShowWindow(lv, visible ? SW_HIDE : SW_SHOW);
+        bool newVisible = !visible;
+        ShowWindow(lv, newVisible ? SW_SHOW : SW_HIDE);
+        TvDesk.Logger.Log($"DesktopIcons.Toggle: {visible} -> {newVisible}, hwnd={lv}");
+        return newVisible;
     }
 
     public static void SetVisible(bool visible)
     {
         IntPtr lv = GetDesktopListView();
-        if (lv == IntPtr.Zero) return;
+        if (lv == IntPtr.Zero) { TvDesk.Logger.Log("DesktopIcons.SetVisible: list view not found"); return; }
         ShowWindow(lv, visible ? SW_SHOW : SW_HIDE);
+        TvDesk.Logger.Log($"DesktopIcons.SetVisible: {visible}, hwnd={lv}");
     }
 }

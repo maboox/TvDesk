@@ -71,11 +71,29 @@ public static class M3uParser
                 if (string.IsNullOrWhiteSpace(current.Name)) current.Name = line;
                 current.Group = NormalizeGroup(current.Group);
                 current.Country = NormalizeCountry(string.IsNullOrWhiteSpace(current.Country) ? GuessCountryFromSource(sourceName) : current.Country);
+                if (LooksLikeCountry(current.Group))
+                {
+                    if (string.IsNullOrWhiteSpace(current.Country)) current.Country = NormalizeCountry(current.Group);
+                    current.Group = "General";
+                }
                 channels.Add(current);
                 current = null;
             }
         }
         return channels;
+    }
+
+    private static readonly HashSet<string> CountryLikeGroups = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "AF","AL","DZ","AD","AO","AR","AM","AU","AT","AZ","BH","BD","BY","BE","BO","BA","BR","BG","CA","CL","CN","CO","CR","HR","CU","CY","CZ","DK","DO","EC","EG","EE","FI","FR","GE","DE","GR","GT","HK","HU","IS","IN","ID","IR","IQ","IE","IL","IT","JP","JO","KZ","KR","KW","LV","LB","LT","LU","MY","MX","MA","NL","NZ","NO","PK","PA","PE","PH","PL","PT","QA","RO","RU","SA","RS","SG","SK","SI","ZA","ES","SE","CH","TH","TR","UA","AE","GB","UK","US","UY","VE","VN",
+        "Afghanistan","Albania","Algeria","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahrain","Bangladesh","Belarus","Belgium","Brazil","Bulgaria","Canada","Chile","China","Colombia","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Dominican Republic","Ecuador","Egypt","Estonia","Finland","France","Georgia","Germany","Deutschland","آلمان","Greece","Hong Kong","Hungary","Iceland","India","Indonesia","Iran","ایران","Iraq","Ireland","Israel","Italy","Japan","Jordan","Kazakhstan","South Korea","Korea","Kuwait","Latvia","Lebanon","Lithuania","Luxembourg","Malaysia","Mexico","Morocco","Netherlands","New Zealand","Norway","Pakistan","Panama","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Saudi Arabia","Serbia","Singapore","Slovakia","Slovenia","South Africa","Spain","Sweden","Switzerland","Thailand","Turkey","Türkiye","ترکیه","Ukraine","United Arab Emirates","United Kingdom","England","United States","USA","America","Uruguay","Venezuela","Vietnam"
+    };
+
+    public static bool LooksLikeCountry(string? value)
+    {
+        var v = (value ?? "").Trim();
+        if (v.Length == 0) return false;
+        return CountryLikeGroups.Contains(v) || CountryLikeGroups.Contains(NormalizeCountry(v));
     }
 
     public static string NormalizeGroup(string? group)

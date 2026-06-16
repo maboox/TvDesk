@@ -169,7 +169,14 @@ public sealed class AppController : IDisposable
         _control.Activate();
     }
 
-    public void ToggleDesktopIcons() => DesktopIcons.Toggle();
+    public void ToggleDesktopIcons()
+    {
+        bool iconsVisible = DesktopIcons.Toggle();
+        // TvDesk قبلاً برای visible شدن روی Progman بالا آورده می‌شد؛ بعد از toggle باید دوباره پشت DefView قرار بگیرد
+        // تا وقتی آیکون‌ها visible هستند واقعاً دیده شوند.
+        _desktop?.PlaceBehindIcons();
+        SetStatus(iconsVisible ? "🖥 آیکون‌های دسکتاپ روشن شد" : "🖥 آیکون‌های دسکتاپ خاموش شد");
+    }
 
     public void SetVolume(int v)
     {

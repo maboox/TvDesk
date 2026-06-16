@@ -48,13 +48,13 @@ public sealed class FocusFullscreenWatcher : IDisposable
 
         if (ctrl.Settings.StopOnFullscreen && fullscreen)
         {
-            if (!_stoppedForFullscreen) { ctrl.Playback.Stop(); _stoppedForFullscreen = true; }
+            if (!_stoppedForFullscreen) { ctrl.PauseForFullscreen(); _stoppedForFullscreen = true; }
             return;
         }
         if (_stoppedForFullscreen && !fullscreen)
         {
             _stoppedForFullscreen = false;
-            ctrl.ResumeLast();
+            ctrl.ResumeAfterFullscreen();
         }
 
         if (ctrl.Settings.MuteOnFocusLoss && !ctrl.Settings.Muted)

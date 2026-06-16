@@ -7,12 +7,13 @@ using TvDesk.Playback;
 namespace TvDesk.UI;
 
 /// <summary>
-/// پنجرهٔ میزبان والپیپر. از WinForms استفاده می‌کند چون LibVLC روی HWND سادهٔ WinForms
-/// بسیار مطمئن‌تر از VideoView وپ‌اف (مشکل airspace) پشت آیکون‌ها رندر می‌شود.
+/// پنجرهٔ میزبان والپیپر. WinForms + HWND مستقیم برای LibVLC.
 /// </summary>
 public sealed class DesktopHost : Form
 {
     private readonly Label _statusLabel;
+    private readonly Panel _dimOverlay;
+    private double _dim;
 
     public DesktopHost()
     {
@@ -24,7 +25,24 @@ public sealed class DesktopHost : Form
         var b = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
         Bounds = b;
 
-        // صفحهٔ تیرهٔ وضعیت/لودینگ — وقتی چیزی پخش نمی‌شود روی کل دسکتاپ دیده می‌شود
+        // تاریکی مستقل از VLC. این overlay روی پنجرهٔ والپیپر می‌نشیند تا حتی با wingdi هم کار کند.
+        _dimOverlay = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            Visible = false,
+            Enabled = false
+        };
+        _dimOverlay.Paint += (_, e) =>
+        {
+            int alpha = Math.Clamp((int)(_dim * 255), 0, 220);
+            if (alpha <= 0) return;
+            using var brush = new SolidBrush(Color.FromArgb(alpha, 0, 0, 0));
+            e.Graphics.FillRectangle(brush, _dimOverlay.ClientRectangle);
+        };
+        Controls.Add(_dimOverlay);
+
+        // صفحهٔ وضعیت اولیه. بعد از شروع پخش دیگر در حالت pause/قطع روی ویدیو نمی‌آید تا فریم آخر باقی بماند.
         _statusLabel = new Label
         {
             Dock = DockStyle.Fill,
@@ -41,11 +59,10 @@ public sealed class DesktopHost : Form
 
     public void AttachToDesktop()
     {
-        var handle = Handle; // دسترسی به Handle باعث ساخت پنجره می‌شود
+        var handle = Handle;
         bool ok = WorkerWHelper.AttachToDesktop(handle);
         TvDesk.Logger.Log($"DesktopHost AttachToDesktop ok={ok} handle={handle}");
         var b = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
-        // پس از reparent مختصات نسبت به WorkerW است → صفحهٔ اصلی از (0,0)
         WorkerWHelper.SetBounds(handle, 0, 0, b.Width, b.Height);
     }
 
@@ -54,7 +71,21 @@ public sealed class DesktopHost : Form
         engine.SetVideoHandle(Handle);
     }
 
-    /// <summary>نمایش صفحهٔ تیره + متن وضعیت روی دسکتاپ (وقتی چیزی پخش نمی‌شود).</summary>
+    public void SetDim(double dim)
+    {
+        if (IsDisposed) return;
+        if (IsHandleCreated && InvokeRequired) { BeginInvoke(new Action(() => SetDim(dim))); return; }
+        _dim = Math.Clamp(dim, 0, 0.85);
+        _dimOverlay.Visible = _dim > 0.001;
+        if (_dimOverlay.Visible)
+        {
+            _dimOverlay.BringToFront();
+            if (_statusLabel.Visible) _statusLabel.BringToFront();
+        }
+        _dimOverlay.Invalidate();
+        TvDesk.Logger.Log($"Desktop dim set = {_dim:0.00}");
+    }
+
     public void ShowStatus(string text)
     {
         if (IsDisposed) return;
@@ -64,11 +95,11 @@ public sealed class DesktopHost : Form
         _statusLabel.BringToFront();
     }
 
-    /// <summary>پنهان کردن صفحهٔ تیره تا ویدیو دیده شود.</summary>
     public void HideStatus()
     {
         if (IsDisposed) return;
         if (IsHandleCreated && InvokeRequired) { BeginInvoke(new Action(HideStatus)); return; }
         _statusLabel.Visible = false;
+        if (_dimOverlay.Visible) _dimOverlay.BringToFront();
     }
 }

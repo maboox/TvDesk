@@ -7,6 +7,12 @@ using Microsoft.Win32;
 
 namespace TvDesk.Settings;
 
+public sealed class FavoriteItem
+{
+    public string Name { get; set; } = "";
+    public string Url { get; set; } = "";
+}
+
 public sealed class AppSettings
 {
     public int Volume { get; set; } = 80;
@@ -19,6 +25,7 @@ public sealed class AppSettings
     public bool AutoStart { get; set; } = false;
     public double WallpaperDim { get; set; } = 0.0; // 0..0.85
     public List<string> FavoriteUrls { get; set; } = new();
+    public List<FavoriteItem> FavoriteItems { get; set; } = new();
     public int PlaylistRefreshDays { get; set; } = 2;
 }
 
@@ -42,7 +49,12 @@ public static class SettingsStore
         try
         {
             if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
+            {
+                var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
+                s.FavoriteUrls ??= new List<string>();
+                s.FavoriteItems ??= new List<FavoriteItem>();
+                return s;
+            }
         }
         catch { }
         return new AppSettings();

@@ -40,7 +40,7 @@ public sealed class PlaybackEngine : IDisposable
         if (Player == null) return;
         Player.Opening += (_, __) => Report("\u23F3 در حال اتصال به کانال…");
         Player.Buffering += (_, e) => OnBuffering(e.Cache);
-        Player.Playing += (_, __) => { _lastBufferBucket = -1; Report("\u25B6 در حال پخش"); };
+        Player.Playing += (_, __) => { HasEverPlayed = true; _lastBufferBucket = -1; Report("\u25B6 در حال پخش"); };
         Player.Paused += (_, __) => Report("\u23F8 مکث");
         Player.EncounteredError += (_, __) => Report("\u2715 خطا در پخش این کانال (ممکن است خراب یا فیلتر باشد)");
         Player.EndReached += (_, __) => Report("\u25A0 استریم قطع/تمام شد");
@@ -96,6 +96,29 @@ public sealed class PlaybackEngine : IDisposable
     }
 
     public void Stop() => Player?.Stop();
+
+    /// <summary>برای فول‌اسکرین فقط Pause می‌کنیم تا فریم آخر روی دسکتاپ بماند و برگشت از اول لود نکند.</summary>
+    public void PauseKeepFrame()
+    {
+        try
+        {
+            if (Player == null) return;
+            if (Player.IsPlaying) Player.Pause();
+        }
+        catch (Exception ex) { TvDesk.Logger.Log("PauseKeepFrame failed", ex); }
+    }
+
+    public void Resume()
+    {
+        try
+        {
+            if (Player == null) return;
+            Player.Play();
+        }
+        catch (Exception ex) { TvDesk.Logger.Log("Resume failed", ex); }
+    }
+
+    public bool HasEverPlayed { get; private set; }
     public bool IsPlaying => Player?.IsPlaying ?? false;
     public void SetVolume(int v) { if (Player != null) Player.Volume = Math.Clamp(v, 0, 100); }
     public void SetMuted(bool muted) { if (Player != null) Player.Mute = muted; }

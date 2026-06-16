@@ -17,16 +17,37 @@ public sealed class AppSettings
 {
     public int Volume { get; set; } = 80;
     public bool Muted { get; set; } = false;
-    public string Quality { get; set; } = "Auto"; // Auto / High / Medium / Low
+    public string Quality { get; set; } = "Auto";
     public string? LastChannelUrl { get; set; }
     public string? LastChannelName { get; set; }
+    public bool AutoStart { get; set; } = false;
+
+    // First run / localization
+    public bool OnboardingComplete { get; set; } = false;
+    public string Language { get; set; } = "fa"; // fa / en
+
+    // Independent behavior switches
+    public bool MuteAudioOnFocusLoss { get; set; } = true;
+    public bool PauseVideoOnFocusLoss { get; set; } = false;
+    public bool MuteAudioOnFullscreen { get; set; } = true;
+    public bool PauseVideoOnFullscreen { get; set; } = true;
+
+    // Backward compatibility with older settings.json
     public bool MuteOnFocusLoss { get; set; } = true;
     public bool StopOnFullscreen { get; set; } = true;
-    public bool AutoStart { get; set; } = false;
-    public double WallpaperDim { get; set; } = 0.0; // 0..0.85
+    public double WallpaperDim { get; set; } = 0.0;
+
     public List<string> FavoriteUrls { get; set; } = new();
     public List<FavoriteItem> FavoriteItems { get; set; } = new();
     public int PlaylistRefreshDays { get; set; } = 2;
+
+    // Source selection
+    public bool SourceTelewebion { get; set; } = true;
+    public bool SourceIptvOrgIran { get; set; } = true;
+    public bool SourceIptvOrgCategories { get; set; } = true;
+    public bool SourceIptvOrgLanguages { get; set; } = false;
+    public bool SourceFreeTv { get; set; } = false;
+    public List<FavoriteItem> CustomPlaylistSources { get; set; } = new();
 }
 
 public static class SettingsStore
@@ -53,6 +74,14 @@ public static class SettingsStore
                 var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath)) ?? new AppSettings();
                 s.FavoriteUrls ??= new List<string>();
                 s.FavoriteItems ??= new List<FavoriteItem>();
+                s.CustomPlaylistSources ??= new List<FavoriteItem>();
+
+                // migrate old flags on first newer run
+                if (!s.OnboardingComplete)
+                {
+                    s.MuteAudioOnFocusLoss = s.MuteOnFocusLoss;
+                    s.PauseVideoOnFullscreen = s.StopOnFullscreen;
+                }
                 return s;
             }
         }
@@ -67,7 +96,6 @@ public static class SettingsStore
     }
 }
 
-/// <summary>اجرای خودکار با ویندوز از طریق کلید Run در رجیستری.</summary>
 public static class AutoStartManager
 {
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -84,10 +112,7 @@ public static class AutoStartManager
                 string exe = Process.GetCurrentProcess().MainModule?.FileName ?? "";
                 if (!string.IsNullOrEmpty(exe)) key.SetValue(ValueName, $"\"{exe}\"");
             }
-            else
-            {
-                key.DeleteValue(ValueName, false);
-            }
+            else key.DeleteValue(ValueName, false);
         }
         catch { }
     }

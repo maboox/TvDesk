@@ -6,24 +6,26 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using TvDesk.Settings;
 
 namespace TvDesk.Sources;
 
-/// <summary>یک کانال تلویزیونی.</summary>
 public sealed class Channel
 {
     public string Name { get; set; } = "";
     public string Url { get; set; } = "";
     public string? Group { get; set; }
+    public string? Country { get; set; }
     public string? LogoUrl { get; set; }
     public string? TvgId { get; set; }
     public string Source { get; set; } = "";
     public bool IsFavorite { get; set; }
-    public string FavoriteText => IsFavorite ? "★ منتخب" : "☆ افزودن";
+    public bool? IsAlive { get; set; }
+    public string FavoriteText => IsFavorite ? "★" : "☆";
+    public string HealthText => IsAlive == true ? "✓" : IsAlive == false ? "×" : "";
     public override string ToString() => Name;
 }
 
-/// <summary>پارس فرمت M3U/M3U8 به لیست کانال‌ها.</summary>
 public static class M3uParser
 {
     private static readonly Regex AttrRegex = new(@"([\w-]+)=""([^""]*)""", RegexOptions.Compiled);
@@ -54,40 +56,53 @@ public static class M3uParser
                         case "tvg-logo": current.LogoUrl = val; break;
                         case "group-title": current.Group = val; break;
                         case "tvg-name": if (string.IsNullOrEmpty(current.Name)) current.Name = val; break;
+                        case "tvg-country": current.Country = val; break;
+                        case "country": current.Country = val; break;
                     }
                 }
                 int comma = line.LastIndexOf(',');
                 if (comma >= 0 && comma < line.Length - 1)
                     current.Name = line[(comma + 1)..].Trim();
             }
-            else if (!line.StartsWith("#"))
+            else if (!line.StartsWith("#") && current != null)
             {
-                if (current != null)
-                {
-                    current.Url = line;
-                    if (string.IsNullOrWhiteSpace(current.Name)) current.Name = line;
-                    if (string.IsNullOrWhiteSpace(current.Group)) current.Group = "بدون دسته";
-                    channels.Add(current);
-                    current = null;
-                }
+                current.Url = line;
+                if (string.IsNullOrWhiteSpace(current.Name)) current.Name = line;
+                if (string.IsNullOrWhiteSpace(current.Group)) current.Group = "بدون دسته";
+                if (string.IsNullOrWhiteSpace(current.Country)) current.Country = GuessCountryFromSource(sourceName);
+                channels.Add(current);
+                current = null;
             }
         }
         return channels;
     }
+
+    private static string GuessCountryFromSource(string sourceName)
+    {
+        if (sourceName.Contains("ایران") || sourceName.Contains("Iran", StringComparison.OrdinalIgnoreCase)) return "IR";
+        return "";
+    }
 }
 
-/// <summary>دانلود، کش و آپدیت خودکار پلی‌لیست‌های اپن‌سورس.</summary>
 public static class PlaylistUpdater
 {
     public record Source(string Name, string Url);
 
-    // پلی‌لیست‌های عمومی و رایگان (تفکیک بر اساس کشور/دسته/زبان)
-    public static readonly List<Source> Sources = new()
+    public static List<Source> GetSources(AppSettings settings)
     {
-        new("ایران (iptv-org)", "https://iptv-org.github.io/iptv/countries/ir.m3u"),
-        new("دسته‌بندی‌ها (iptv-org)", "https://iptv-org.github.io/iptv/index.category.m3u"),
-        new("زبان‌ها (iptv-org)", "https://iptv-org.github.io/iptv/index.language.m3u"),
-    };
+        var list = new List<Source>();
+        if (settings.SourceIptvOrgIran)
+            list.Add(new("ایران · iptv-org", "https://iptv-org.github.io/iptv/countries/ir.m3u"));
+        if (settings.SourceIptvOrgCategories)
+            list.Add(new("دسته‌بندی‌ها · iptv-org", "https://iptv-org.github.io/iptv/index.category.m3u"));
+        if (settings.SourceIptvOrgLanguages)
+            list.Add(new("زبان‌ها · iptv-org", "https://iptv-org.github.io/iptv/index.language.m3u"));
+        if (settings.SourceFreeTv)
+            list.Add(new("Free-TV/IPTV", "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8"));
+        foreach (var custom in settings.CustomPlaylistSources.Where(x => !string.IsNullOrWhiteSpace(x.Url)))
+            list.Add(new(string.IsNullOrWhiteSpace(custom.Name) ? "IPTV سفارشی" : custom.Name, custom.Url));
+        return list;
+    }
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
@@ -95,45 +110,38 @@ public static class PlaylistUpdater
     {
         get
         {
-            string dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TvDesk", "cache");
+            string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TvDesk", "cache");
             Directory.CreateDirectory(dir);
             return dir;
         }
     }
 
-    public static async Task<List<Channel>> GetChannelsAsync(int refreshDays)
+    public static async Task<List<Channel>> GetChannelsAsync(AppSettings settings)
     {
         var result = new List<Channel>();
+        if (settings.SourceTelewebion) result.AddRange(Telewebion.Channels());
 
-        // کانال‌های مستقیم تلوبیون (همیشه موجود)
-        result.AddRange(Telewebion.Channels());
-
-        foreach (var src in Sources)
+        foreach (var src in GetSources(settings))
         {
             try
             {
-                string text = await GetCachedOrDownloadAsync(src, refreshDays);
+                string text = await GetCachedOrDownloadAsync(src, settings.PlaylistRefreshDays);
                 result.AddRange(M3uParser.Parse(text, src.Name));
             }
-            catch { /* اگر یک منبع دردسترس نبود، رد شو */ }
+            catch (Exception ex) { TvDesk.Logger.Log($"Playlist source failed: {src.Name} {src.Url}", ex); }
         }
 
-        return result
-            .Where(c => !string.IsNullOrWhiteSpace(c.Url))
-            .GroupBy(c => c.Url)
-            .Select(g => g.First())
-            .ToList();
+        return result.Where(c => !string.IsNullOrWhiteSpace(c.Url))
+            .GroupBy(c => c.Url).Select(g => g.First()).ToList();
     }
 
     private static async Task<string> GetCachedOrDownloadAsync(Source src, int refreshDays)
     {
-        string file = Path.Combine(CacheDir, Sanitize(src.Name) + ".m3u");
+        string file = Path.Combine(CacheDir, Sanitize(src.Name + "_" + src.Url.GetHashCode()) + ".m3u");
         if (File.Exists(file))
         {
             var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(file);
-            if (age.TotalDays < refreshDays)
-                return await File.ReadAllTextAsync(file);
+            if (age.TotalDays < refreshDays) return await File.ReadAllTextAsync(file);
         }
         string text = await Http.GetStringAsync(src.Url);
         await File.WriteAllTextAsync(file, text);
@@ -147,7 +155,6 @@ public static class PlaylistUpdater
     }
 }
 
-/// <summary>کانال‌های زنده‌ی تلوبیون (لینک m3u8 مستقیم). بعضی ممکن است region-lock روی ایران باشند.</summary>
 public static class Telewebion
 {
     private static Channel C(string name, string id) => new()
@@ -155,37 +162,29 @@ public static class Telewebion
         Name = name,
         Url = "https://cdnw.telewebion.com/" + id + "/live/playlist.m3u8",
         Group = "تلوبیون",
+        Country = "IR",
         Source = "Telewebion"
     };
 
     public static List<Channel> Channels() => new()
     {
-        C("شبکه یک", "tv1"),
-        C("شبکه دو", "tv2"),
-        C("شبکه سه", "tv3"),
-        C("شبکه چهار", "tv4"),
-        C("شبکه پنج (تهران)", "tv5"),
-        C("خبر", "irinn"),
-        C("ورزش", "varzesh"),
-        C("نسیم", "nasim"),
-        C("تماشا", "hdtest"),
-        C("پویا", "pooya"),
+        C("شبکه یک", "tv1"), C("شبکه دو", "tv2"), C("شبکه سه", "tv3"), C("شبکه چهار", "tv4"),
+        C("شبکه پنج (تهران)", "tv5"), C("خبر", "irinn"), C("ورزش", "varzesh"), C("نسیم", "nasim"),
+        C("تماشا", "hdtest"), C("پویا", "pooya"),
     };
 }
 
-/// <summary>کتابخانه‌ی کانال‌های درحال‌اجرا.</summary>
 public sealed class ChannelLibrary
 {
     public List<Channel> Channels { get; } = new();
 
-    public async Task LoadAsync(int refreshDays)
+    public async Task LoadAsync(AppSettings settings)
     {
         Channels.Clear();
-        Channels.AddRange(await PlaylistUpdater.GetChannelsAsync(refreshDays));
+        Channels.AddRange(await PlaylistUpdater.GetChannelsAsync(settings));
     }
 }
 
-/// <summary>تبدیل هر ورودی (فایل/IPTV/یوتیوب/آپارات/تلوبیون) به یک URL قابل‌پخش.</summary>
 public static class SourceResolver
 {
     public static async Task<string> ResolveAsync(string input, string quality = "Auto")
@@ -201,15 +200,14 @@ public static class SourceResolver
     private static bool IsDirectStream(string url)
     {
         string u = url.ToLowerInvariant();
-        return u.Contains(".m3u8") || u.EndsWith(".ts") || u.EndsWith(".mp4")
-            || u.EndsWith(".mkv") || u.StartsWith("rtmp://") || u.StartsWith("udp://");
+        return u.Contains(".m3u8") || u.EndsWith(".ts") || u.EndsWith(".mp4") || u.EndsWith(".mkv")
+            || u.StartsWith("rtmp://") || u.StartsWith("udp://");
     }
 
     private static bool NeedsYtDlp(string url)
     {
         string u = url.ToLowerInvariant();
-        return u.Contains("youtube.com") || u.Contains("youtu.be")
-            || u.Contains("aparat.com")
+        return u.Contains("youtube.com") || u.Contains("youtu.be") || u.Contains("aparat.com")
             || (u.Contains("telewebion.com") && !u.Contains(".m3u8"));
     }
 
@@ -224,7 +222,7 @@ public static class SourceResolver
         };
 
         string exe = Path.Combine(AppContext.BaseDirectory, "yt-dlp.exe");
-        if (!File.Exists(exe)) exe = "yt-dlp.exe"; // fall back to PATH
+        if (!File.Exists(exe)) exe = "yt-dlp.exe";
 
         var psi = new System.Diagnostics.ProcessStartInfo
         {
@@ -236,38 +234,28 @@ public static class SourceResolver
             CreateNoWindow = true
         };
 
-        using var proc = System.Diagnostics.Process.Start(psi)
-            ?? throw new InvalidOperationException("yt-dlp not found");
+        using var proc = System.Diagnostics.Process.Start(psi) ?? throw new InvalidOperationException("yt-dlp not found");
         string output = await proc.StandardOutput.ReadToEndAsync();
         await proc.WaitForExitAsync();
-
         var first = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(first))
-            throw new InvalidOperationException("yt-dlp returned no stream URL");
+        if (string.IsNullOrWhiteSpace(first)) throw new InvalidOperationException("yt-dlp returned no stream URL");
         return first.Trim();
     }
 }
 
-/// <summary>بررسی سلامت کانال (ایده ۳) — تشخیص کانال خراب.</summary>
 public static class ChannelHealth
 {
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
 
     public static async Task<bool> IsAliveAsync(string url, CancellationToken ct = default)
     {
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            string resolved = await SourceResolver.ResolveAsync(url, "Low");
+            using var req = new HttpRequestMessage(HttpMethod.Get, resolved);
             using var resp = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
             return resp.IsSuccessStatusCode;
         }
         catch { return false; }
     }
-}
-
-// EPG / راهنمای برنامه (ایده ۱) — فاز ۳.
-// iptv-org برای هر کشور فایل XMLTV دارد که با tvg-id به کانال‌ها مَپ می‌شود.
-public static class Epg
-{
-    // TODO فاز ۳: دانلود XMLTV، پارس <programme>، مَپ با Channel.TvgId
 }

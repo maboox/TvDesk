@@ -28,6 +28,38 @@ public static class WorkerWHelper
 
     delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
+    [DllImport("user32.dll")]
+    static extern bool EnumChildWindows(IntPtr parent, EnumWindowsProc cb, IntPtr lParam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+    [DllImport("user32.dll")]
+    static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    [DllImport("user32.dll")]
+    static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct RECT { public int left, top, right, bottom; }
+
+    /// <summary>ساختار درخت دسکتاپ (Progman و فرزندانش) را برای عیب‌یابی لاگ می‌کند.</summary>
+    public static void LogDesktopTree()
+    {
+        try
+        {
+            IntPtr progman = FindWindow("Progman", null);
+            TvDesk.Logger.Log($"--- Desktop tree (Progman={progman}) ---");
+            EnumChildWindows(progman, (h, _) =>
+            {
+                var sb = new System.Text.StringBuilder(256);
+                GetClassName(h, sb, sb.Capacity);
+                GetWindowRect(h, out RECT r);
+                TvDesk.Logger.Log($"  {h} '{sb}' vis={IsWindowVisible(h)} ({r.left},{r.top})-({r.right},{r.bottom})");
+                return true;
+            }, IntPtr.Zero);
+            TvDesk.Logger.Log("--- end tree ---");
+        }
+        catch (Exception ex) { TvDesk.Logger.Log("LogDesktopTree", ex); }
+    }
+
     public static IntPtr GetWorkerW()
     {
         IntPtr progman = FindWindow("Progman", null);
@@ -63,9 +95,13 @@ public static class WorkerWHelper
     {
         IntPtr workerw = GetWorkerW();
         TvDesk.Logger.Log($"WorkerW = {workerw}");
+        LogDesktopTree();
         if (workerw != IntPtr.Zero)
         {
             SetParent(myWindowHandle, workerw);
+            // بالای والپیپر بیاور تا حتماً دیده شود (در برخی نسخه‌های ۱۱ پیش‌فرض پشتِ لایهٔ والپیپر می‌ماند)
+            const uint SWP_NOSIZE2 = 0x0001, SWP_NOMOVE2 = 0x0002, SWP_NOACTIVATE2 = 0x0010;
+            SetWindowPos(myWindowHandle, IntPtr.Zero /* HWND_TOP */, 0, 0, 0, 0, SWP_NOSIZE2 | SWP_NOMOVE2 | SWP_NOACTIVATE2);
             return true;
         }
 

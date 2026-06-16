@@ -12,7 +12,6 @@ namespace TvDesk.UI;
 /// </summary>
 public sealed class DesktopHost : Form
 {
-    private readonly Panel _videoPanel;
     private readonly Label _statusLabel;
 
     public DesktopHost()
@@ -24,10 +23,6 @@ public sealed class DesktopHost : Form
         StartPosition = FormStartPosition.Manual;
         var b = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
         Bounds = b;
-
-        // پنل ویدیو — LibVLC مستقیماً روی HWND این پنل رندر می‌کند
-        _videoPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Black };
-        Controls.Add(_videoPanel);
 
         // صفحهٔ تیرهٔ وضعیت/لودینگ — وقتی چیزی پخش نمی‌شود روی کل دسکتاپ دیده می‌شود
         _statusLabel = new Label
@@ -56,7 +51,7 @@ public sealed class DesktopHost : Form
 
     public void BindPlayback(PlaybackEngine engine)
     {
-        engine.SetVideoHandle(_videoPanel.Handle);
+        engine.SetVideoHandle(Handle);
     }
 
     /// <summary>نمایش صفحهٔ تیره + متن وضعیت روی دسکتاپ (وقتی چیزی پخش نمی‌شود).</summary>

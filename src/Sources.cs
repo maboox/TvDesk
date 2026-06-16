@@ -19,6 +19,7 @@ public sealed class Channel
     public string? TvgId { get; set; }
     public string Source { get; set; } = "";
     public bool IsFavorite { get; set; }
+    public string FavoriteText => IsFavorite ? "★ منتخب" : "☆ افزودن";
     public override string ToString() => Name;
 }
 

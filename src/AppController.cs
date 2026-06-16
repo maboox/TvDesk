@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using TvDesk.Behaviors;
@@ -20,18 +21,19 @@ public sealed class AppController : IDisposable
     public PlaybackEngine Playback { get; private set; } = null!;
     public ChannelLibrary Library { get; } = new();
 
-    /// <summary>وضعیت جاری اپ (لود/بافر/پخش/خطا) برای نمایش در پنل کنترل.</summary>
     public event Action<string>? StatusChanged;
     public void SetStatus(string message)
     {
-        // پیام‌های بافر را در فایل لاگ نمی‌نویسیم (فقط UI) تا لاگ شلوغ نشود
         if (!message.Contains("بافر")) Logger.Log($"STATUS: {message}");
         try { StatusChanged?.Invoke(message); } catch { }
         try
         {
-            // صفحهٔ تیرهٔ دسکتاپ: هنگام پخش پنهان، در غیر این صورت نمایش وضعیت
-            if (message.Contains("در حال پخش")) _desktop?.HideStatus();
-            else if (!message.Contains("بافر")) _desktop?.ShowStatus(message);
+            // نکته: بعد از شروع پخش، دیگر صفحهٔ وضعیت را روی دسکتاپ نمی‌آوریم تا آخرین فریم/ویدیو باقی بماند.
+            // برای لود اولیه یا خطاهای قبل از پخش، نمایش وضعیت مجاز است.
+            if (message.Contains("در حال پخش") || message.Contains("مکث") || message.Contains("بافر"))
+                _desktop?.HideStatus();
+            else if (!(Playback?.HasEverPlayed ?? false))
+                _desktop?.ShowStatus(message);
         }
         catch { }
     }
@@ -42,10 +44,7 @@ public sealed class AppController : IDisposable
     private FocusFullscreenWatcher? _watcher;
     private HotkeyManager? _hotkeys;
 
-    public AppController()
-    {
-        Instance = this;
-    }
+    public AppController() => Instance = this;
 
     public async void Start()
     {
@@ -61,12 +60,12 @@ public sealed class AppController : IDisposable
             Logger.Log("Creating desktop (wallpaper) host");
             _desktop = new DesktopHost();
             _desktop.Show();
-            _desktop.AttachToDesktop();   // اول پشت آیکون‌ها ببر
-            _desktop.BindPlayback(Playback); // بعد ویدیو را به HWND وصل کن
+            _desktop.AttachToDesktop();
+            _desktop.BindPlayback(Playback);
+            _desktop.SetDim(Settings.WallpaperDim);
 
             Playback.SetVolume(Settings.Volume);
             Playback.SetMuted(Settings.Muted);
-            Playback.SetBrightness((float)(1.0 - Math.Clamp(Settings.WallpaperDim, 0, 0.85)));
 
             Logger.Log("Creating + showing control window");
             _control = new ControlWindow();
@@ -115,7 +114,6 @@ public sealed class AppController : IDisposable
             SetStatus($"\u23F3 در حال لود کانال: {label}…");
             string playable = await SourceResolver.ResolveAsync(input, Settings.Quality);
             Playback.Play(playable);
-            Playback.SetBrightness((float)(1.0 - Math.Clamp(Settings.WallpaperDim, 0, 0.85)));
             Settings.LastChannelUrl = input;
             Settings.LastChannelName = name;
             SettingsStore.Save(Settings);
@@ -131,6 +129,20 @@ public sealed class AppController : IDisposable
     {
         if (!string.IsNullOrWhiteSpace(Settings.LastChannelUrl))
             await PlayAsync(Settings.LastChannelUrl!, Settings.LastChannelName ?? "");
+    }
+
+    public void PauseForFullscreen()
+    {
+        Logger.Log("PauseForFullscreen");
+        Playback.PauseKeepFrame();
+        SetStatus("⏸ مکث برای فول‌اسکرین");
+    }
+
+    public void ResumeAfterFullscreen()
+    {
+        Logger.Log("ResumeAfterFullscreen");
+        Playback.Resume();
+        SetStatus("▶ ادامهٔ پخش");
     }
 
     public void ShowControl()
@@ -159,8 +171,8 @@ public sealed class AppController : IDisposable
 
     public void SetDim(double dim)
     {
-        Settings.WallpaperDim = dim;
-        Playback?.SetBrightness((float)(1.0 - Math.Clamp(dim, 0, 0.85)));
+        Settings.WallpaperDim = Math.Clamp(dim, 0, 0.85);
+        _desktop?.SetDim(Settings.WallpaperDim);
         SettingsStore.Save(Settings);
     }
 
@@ -170,16 +182,31 @@ public sealed class AppController : IDisposable
         SettingsStore.Save(Settings);
     }
 
+    public void AddFavoriteLink(string name, string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+        Settings.FavoriteUrls.Remove(url);
+        Settings.FavoriteUrls.Insert(0, url);
+        Settings.FavoriteItems.RemoveAll(x => x.Url == url);
+        Settings.FavoriteItems.Insert(0, new FavoriteItem { Name = string.IsNullOrWhiteSpace(name) ? url : name, Url = url });
+        SettingsStore.Save(Settings);
+        _control?.RefreshFavoriteStates();
+    }
+
     public void ToggleFavorite(Channel c)
     {
+        if (string.IsNullOrWhiteSpace(c.Url)) return;
         c.IsFavorite = !c.IsFavorite;
         if (c.IsFavorite)
         {
             if (!Settings.FavoriteUrls.Contains(c.Url)) Settings.FavoriteUrls.Add(c.Url);
+            if (!Settings.FavoriteItems.Any(x => x.Url == c.Url) && (c.Source == "Custom Favorite" || c.Group == "منتخب‌های دستی"))
+                Settings.FavoriteItems.Add(new FavoriteItem { Name = c.Name, Url = c.Url });
         }
         else
         {
             Settings.FavoriteUrls.Remove(c.Url);
+            Settings.FavoriteItems.RemoveAll(x => x.Url == c.Url);
         }
         SettingsStore.Save(Settings);
     }

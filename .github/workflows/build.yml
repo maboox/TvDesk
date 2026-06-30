@@ -33,35 +33,15 @@ jobs:
       - name: Zip recommended folder build
         run: Compress-Archive -Path publish/* -DestinationPath TvDesk-win-x64.zip
 
-      - name: Publish experimental single EXE build
-        run: >
-          dotnet publish src/TvDesk.csproj -c Release -r win-x64
-          --self-contained true
-          -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
-          -p:IncludeAllContentForSelfExtract=true
-          -p:EnableCompressionInSingleFile=true
-          -o publish-single
-
-      - name: Zip single EXE build
-        run: Compress-Archive -Path publish-single/TvDesk.exe -DestinationPath TvDesk-single-exe-win-x64.zip
-
-      - name: Upload recommended folder artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: TvDesk-win-x64
           path: TvDesk-win-x64.zip
-
-      - name: Upload single EXE artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: TvDesk-single-exe-win-x64
-          path: TvDesk-single-exe-win-x64.zip
+          retention-days: 10
 
       - name: Create Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            TvDesk-win-x64.zip
-            TvDesk-single-exe-win-x64.zip
+          files: TvDesk-win-x64.zip

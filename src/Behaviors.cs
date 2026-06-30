@@ -62,8 +62,10 @@ public sealed class FocusFullscreenWatcher : IDisposable
         }
         if (_sameStateTicks < 1) return;
 
-        bool shouldFreeze = (ctrl.Settings.PauseVideoOnFullscreen && fullscreen)
-                         || (!fullscreen && ctrl.Settings.PauseVideoOnFocusLoss && focusLost);
+        // قبل از اینکه حتی یک فریم ویدیو پخش شده باشد، فریز کردن فقط عکس دسکتاپ قبلی را نگه می‌دارد.
+        bool canFreezeVisual = ctrl.Playback.HasEverPlayed;
+        bool shouldFreeze = canFreezeVisual && ((ctrl.Settings.PauseVideoOnFullscreen && fullscreen)
+                         || (!fullscreen && ctrl.Settings.PauseVideoOnFocusLoss && focusLost));
         bool shouldMute = !ctrl.Settings.Muted &&
                           ((ctrl.Settings.MuteAudioOnFullscreen && fullscreen)
                         || (!fullscreen && ctrl.Settings.MuteAudioOnFocusLoss && focusLost));

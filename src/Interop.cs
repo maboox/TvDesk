@@ -172,17 +172,18 @@ public static class WorkerWHelper
         SetWindowLongPtr(myWindowHandle, GWL_STYLE, new IntPtr(style));
         SetWindowLongPtr(myWindowHandle, GWL_EXSTYLE, new IntPtr(exStyle));
 
-        // Classic WorkerW path: best for Windows 10 / older Windows 11.
-        if (classicWorkerW != IntPtr.Zero && GetParent(classicWorkerW) == IntPtr.Zero)
+        // Classic WorkerW path: best for Windows 10 and Windows 11 22H2/23H2.
+        // نکته: روی بعضی سیستم‌ها GetParent/owner برای WorkerW صفر نیست؛ همین که WorkerW کلاسیک پیدا شده باشد کافی است.
+        if (classicWorkerW != IntPtr.Zero)
         {
             IntPtr oldParent = SetParent(myWindowHandle, classicWorkerW);
-            TvDesk.Logger.Log($"Attach route=classic WorkerW; workerw={classicWorkerW}; oldParent={oldParent}; newParent={GetParent(myWindowHandle)}");
+            TvDesk.Logger.Log($"Attach route=classic WorkerW; workerw={classicWorkerW}; workerParent={GetParent(classicWorkerW)}; oldParent={oldParent}; newParent={GetParent(myWindowHandle)}");
             SetWindowPos(myWindowHandle, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
         }
         else
         {
-            // Windows 11 24H2 fallback that worked on the user's build 26200.
+            // Windows 11 24H2 fallback that worked on build 26200 when WorkerW is a Progman child / invisible target.
             IntPtr oldParent = SetParent(myWindowHandle, progman);
             TvDesk.Logger.Log($"Attach route=Progman fallback; oldParent={oldParent}; newParent={GetParent(myWindowHandle)}");
             SetWindowPos(myWindowHandle, HWND_TOP, 0, 0, 0, 0,

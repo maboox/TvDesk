@@ -2,7 +2,7 @@
 bin/
 obj/
 publish/
-publish-single/
+tools/
 *.zip
 *.nupkg
 
@@ -11,15 +11,11 @@ TvDesk.log
 settings.json
 cache/
 
-# IDE/editor
+# IDE / OS
 .vs/
 .vscode/
 .idea/
 *.user
 *.suo
-*.userosscache
-*.sln.docstates
-
-# OS
 .DS_Store
 Thumbs.db

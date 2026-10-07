@@ -1,0 +1,67 @@
+<UserControl x:Class="TvDesk.UI.OnboardingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="clr-namespace:TvDesk.Core">
+  <Grid Background="{StaticResource BgBrush}">
+    <!-- warm glow behind the card -->
+    <Ellipse Width="900" Height="600" VerticalAlignment="Top" Margin="0,-340,0,0" IsHitTestVisible="False">
+      <Ellipse.Fill>
+        <RadialGradientBrush>
+          <GradientStop Color="#33FF6A3D" Offset="0"/>
+          <GradientStop Color="#00FF6A3D" Offset="1"/>
+        </RadialGradientBrush>
+      </Ellipse.Fill>
+    </Ellipse>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" WindowChrome.IsHitTestVisibleInChrome="True">
+      <StackPanel Width="620" Margin="0,64,0,40" HorizontalAlignment="Center">
+        <Border Width="64" Height="64" CornerRadius="18" Background="{StaticResource AccentBrush}" HorizontalAlignment="Center">
+          <TextBlock Style="{StaticResource Icon}" Text="&#xE7F4;" Foreground="White" FontSize="30" HorizontalAlignment="Center"/>
+        </Border>
+        <TextBlock Text="{l:T ob_title}" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+        <TextBlock Text="{l:T ob_subtitle}" Style="{StaticResource Muted}" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,8,0,0" MaxWidth="520"/>
+
+        <!-- language -->
+        <Border Background="{StaticResource Surface2Brush}" CornerRadius="12" Padding="4" HorizontalAlignment="Center" Margin="0,26,0,0">
+          <StackPanel Orientation="Horizontal">
+            <RadioButton Style="{StaticResource Segment}" GroupName="oblang" Content="فارسی" IsChecked="{Binding IsFarsi}" Padding="26,8"/>
+            <RadioButton Style="{StaticResource Segment}" GroupName="oblang" Content="English" IsChecked="{Binding IsEnglish}" Padding="26,8"/>
+          </StackPanel>
+        </Border>
+
+        <!-- sources -->
+        <TextBlock Text="{l:T ob_sources}" Style="{StaticResource H2}" Margin="4,32,0,4"/>
+        <TextBlock Text="{l:T ob_sources_hint}" Style="{StaticResource Muted}" Margin="4,0,0,12"/>
+        <ItemsControl ItemsSource="{Binding BuiltInSources}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Padding="16,12" Margin="0,0,0,8">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource Icon}" Text="{Binding Icon}" FontSize="17" Foreground="{StaticResource AccentBrush}" Margin="0,0,14,0" VerticalAlignment="Top"/>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13.5"/>
+                    <TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" FontSize="12" Margin="0,3,0,0"/>
+                  </StackPanel>
+                  <CheckBox Grid.Column="2" Style="{StaticResource Switch}" IsChecked="{Binding Enabled}" Margin="14,0,0,0"/>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button Style="{StaticResource PrimaryButton}" Command="{Binding FinishOnboardingCommand}" Height="46" Margin="0,18,0,0" FontSize="14">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{l:T ob_start}"/>
+            <TextBlock Style="{StaticResource Icon}" Text="&#xE768;" FontSize="12" Margin="10,0,0,0"/>
+          </StackPanel>
+        </Button>
+        <TextBlock Text="{l:T ob_later}" Style="{StaticResource Muted}" FontSize="11.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,12,0,0"/>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

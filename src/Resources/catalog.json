@@ -1,0 +1,351 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "picks",
+      "name": {
+        "fa": "منتخب والپیپر",
+        "en": "Wallpaper picks"
+      },
+      "description": {
+        "fa": "پخش‌های زنده‌ی ۲۴ ساعته‌ی یوتیوب که برای پس‌زمینه عالی‌اند: لوفای، آکواریوم، دوربین‌های زنده و خبر جهانی.",
+        "en": "24/7 YouTube live streams that make great backgrounds: lofi, aquariums, live cams and world news."
+      },
+      "icon": "",
+      "defaultEnabled": true,
+      "priority": 0,
+      "channels": [
+        {
+          "name": "Lofi Girl — lofi hip hop radio",
+          "url": "https://www.youtube.com/@LofiGirl/live",
+          "category": "ambient",
+          "country": "INT"
+        },
+        {
+          "name": "Chillhop Radio",
+          "url": "https://www.youtube.com/@ChillhopMusic/live",
+          "category": "ambient",
+          "country": "INT"
+        },
+        {
+          "name": "Monterey Bay Aquarium",
+          "url": "https://www.youtube.com/@MontereyBayAquarium/live",
+          "category": "ambient",
+          "country": "US"
+        },
+        {
+          "name": "EarthCam Live",
+          "url": "https://www.youtube.com/@earthcam/live",
+          "category": "ambient",
+          "country": "US"
+        },
+        {
+          "name": "NASA Live",
+          "url": "https://www.youtube.com/@NASA/live",
+          "category": "science",
+          "country": "US"
+        },
+        {
+          "name": "Al Jazeera English",
+          "url": "https://www.youtube.com/@aljazeeraenglish/live",
+          "category": "news",
+          "country": "QA"
+        },
+        {
+          "name": "DW News",
+          "url": "https://www.youtube.com/@DWNews/live",
+          "category": "news",
+          "country": "DE"
+        },
+        {
+          "name": "France 24 English",
+          "url": "https://www.youtube.com/france24english/live",
+          "category": "news",
+          "country": "FR"
+        },
+        {
+          "name": "Sky News",
+          "url": "https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live",
+          "category": "news",
+          "country": "GB"
+        },
+        {
+          "name": "Euronews",
+          "url": "https://www.youtube.com/euronews/live",
+          "category": "news",
+          "country": "FR"
+        },
+        {
+          "name": "NHK World Japan",
+          "url": "https://www.youtube.com/channel/UCSPEjw8F2nQDtmUKPFNF7_A/live",
+          "category": "news",
+          "country": "JP"
+        },
+        {
+          "name": "TRT World",
+          "url": "https://www.youtube.com/channel/UC7fWeaHhqgM4Ry-RMpM2YYw/live",
+          "category": "news",
+          "country": "TR"
+        },
+        {
+          "name": "CNA",
+          "url": "https://www.youtube.com/channel/UC83jt4dlz1Gjl58fzQrrKZg/live",
+          "category": "news",
+          "country": "SG"
+        },
+        {
+          "name": "ABC News Australia",
+          "url": "https://www.youtube.com/@abcnewsaustralia/live",
+          "category": "news",
+          "country": "AU"
+        }
+      ]
+    },
+    {
+      "id": "iran-irib",
+      "name": {
+        "fa": "ایران — صداوسیما",
+        "en": "Iran — IRIB"
+      },
+      "description": {
+        "fa": "شبکه‌های سراسری صداوسیما از تلوبیون. ممکن است خارج از ایران در دسترس نباشند.",
+        "en": "Iranian state TV channels via Telewebion. Often unavailable outside Iran."
+      },
+      "icon": "",
+      "defaultEnabled": true,
+      "priority": 5,
+      "homepage": "https://telewebion.com",
+      "channels": [
+        {
+          "name": "شبکه یک",
+          "url": "https://ncdn.telewebion.ir/tv1/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/rad9Guw.png",
+          "category": "general",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه دو",
+          "url": "https://ncdn.telewebion.ir/tv2/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/FKiTd3O.png",
+          "category": "general",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه سه",
+          "url": "https://ncdn.telewebion.ir/tv3/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/6cIaH0c.png",
+          "category": "general",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه چهار",
+          "url": "https://ncdn.telewebion.ir/tv4/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/fsdz81l.png",
+          "category": "culture",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه پنج (تهران)",
+          "url": "https://ncdn.telewebion.ir/tehran/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/VdOFcN4.png",
+          "category": "general",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه خبر",
+          "url": "http://185.9.2.18/chid_926/index.m3u8",
+          "logo": "https://i.imgur.com/7HL4joq.png",
+          "category": "news",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه آموزش",
+          "url": "https://ncdn.telewebion.ir/amouzesh/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/qox2azH.png",
+          "category": "education",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه قرآن",
+          "url": "https://ncdn.telewebion.ir/quran/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/nmOKBaK.png",
+          "category": "religious",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه مستند",
+          "url": "https://ncdn.telewebion.ir/mostanad/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/lRDgugZ.png",
+          "category": "documentary",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه نمایش",
+          "url": "https://ncdn.telewebion.ir/namayesh/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/Nq0pCGr.png",
+          "category": "movies",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه افق",
+          "url": "https://ncdn.telewebion.ir/ofogh/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/fhqeYGb.png",
+          "category": "culture",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه ورزش",
+          "url": "https://ncdn.telewebion.ir/varzesh/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/tRLSrxa.png",
+          "category": "sports",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "پویا و نهال",
+          "url": "https://ncdn.telewebion.ir/pooya/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/hjeQUtg.png",
+          "category": "kids",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه سلامت",
+          "url": "https://ncdn.telewebion.ir/salamat/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/K0YUhne.png",
+          "category": "lifestyle",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه نسیم",
+          "url": "https://ncdn.telewebion.ir/nasim/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/EqjQN83.png",
+          "category": "entertainment",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه امید",
+          "url": "https://ncdn.telewebion.ir/omid/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/s9iUe1l.png",
+          "category": "kids",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه تماشا",
+          "url": "https://ncdn.telewebion.ir/hdtest/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/YffSCWH.png",
+          "category": "series",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "شبکه فراتر (UHD)",
+          "url": "https://ncdn.telewebion.ir/faratar/live/playlist.m3u8",
+          "logo": "https://i.imgur.com/qZ98jaa.png",
+          "category": "general",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "آی‌فیلم",
+          "url": "https://live.presstv.co.uk/hls/ifilmfa.m3u8",
+          "logo": "https://i.imgur.com/4Z9L1AW.png",
+          "category": "series",
+          "country": "IR",
+          "language": "Persian"
+        },
+        {
+          "name": "آی‌فیلم ۲",
+          "url": "https://live.presstv.co.uk/hls/ifilm2.m3u8",
+          "logo": "https://i.imgur.com/WZrGsFb.png",
+          "category": "series",
+          "country": "IR",
+          "language": "Persian"
+        }
+      ]
+    },
+    {
+      "id": "iptv-org-ir",
+      "name": {
+        "fa": "iptv-org — کانال‌های ایرانی",
+        "en": "iptv-org — Iran"
+      },
+      "description": {
+        "fa": "حدود ۲۰۰ کانال فارسی‌زبان و ایرانی از مخزن iptv-org (داخل و خارج از ایران).",
+        "en": "About 200 Iranian and Persian-language channels from the iptv-org project."
+      },
+      "icon": "",
+      "defaultEnabled": true,
+      "priority": 10,
+      "homepage": "https://github.com/iptv-org/iptv",
+      "playlists": [
+        {
+          "url": "https://iptv-org.github.io/iptv/countries/ir.m3u",
+          "groupMeans": "category",
+          "country": "IR"
+        }
+      ]
+    },
+    {
+      "id": "iptv-org",
+      "name": {
+        "fa": "iptv-org — همه‌ی دنیا",
+        "en": "iptv-org — Worldwide"
+      },
+      "description": {
+        "fa": "بزرگ‌ترین فهرست آزاد کانال‌های عمومی دنیا (بیش از ۱۰ هزار کانال) با دسته‌بندی، کشور و زبان.",
+        "en": "The largest open list of public channels (10,000+) with categories, countries and languages."
+      },
+      "icon": "",
+      "defaultEnabled": true,
+      "priority": 20,
+      "homepage": "https://github.com/iptv-org/iptv",
+      "playlists": [
+        {
+          "url": "https://iptv-org.github.io/iptv/index.category.m3u",
+          "groupMeans": "category"
+        },
+        {
+          "url": "https://iptv-org.github.io/iptv/index.language.m3u",
+          "groupMeans": "language",
+          "enrichOnly": true
+        }
+      ]
+    },
+    {
+      "id": "free-tv",
+      "name": {
+        "fa": "Free-TV — کانال‌های رایگان",
+        "en": "Free-TV"
+      },
+      "description": {
+        "fa": "فهرست دست‌چین‌شده‌ی کانال‌های رایگان و قانونی (حدود ۲ هزار کانال) که بیشتر به‌روز نگه داشته می‌شود.",
+        "en": "A curated list of free, legal channels (about 2,000), maintained with a focus on quality."
+      },
+      "icon": "",
+      "defaultEnabled": true,
+      "priority": 15,
+      "homepage": "https://github.com/Free-TV/IPTV",
+      "playlists": [
+        {
+          "url": "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8",
+          "groupMeans": "auto"
+        }
+      ]
+    }
+  ]
+}

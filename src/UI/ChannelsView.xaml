@@ -190,7 +190,7 @@
       </WrapPanel>
 
       <!-- test progress -->
-      <ProgressBar Grid.Row="2" Height="2" Minimum="0" Maximum="1" Value="{Binding TestProgress}" Margin="0,0,0,6"
+      <ProgressBar Grid.Row="2" Height="2" Minimum="0" Maximum="1" Value="{Binding TestProgress, Mode=OneWay}" Margin="0,0,0,6"
                    Foreground="{StaticResource AccentBrush}" Background="Transparent" BorderThickness="0"
                    Visibility="{Binding IsTesting, Converter={StaticResource BoolVis}}"/>
 

@@ -138,8 +138,15 @@ public sealed class AppController : IDisposable
         }
         catch (Exception ex)
         {
+            // Never stay alive invisibly: tell the user and quit (otherwise the next launch only finds "already running").
             Logger.Log("Startup failed", ex);
-            try { ShowMainWindow(); } catch { }
+            try
+            {
+                MessageBox.Show("TvDesk could not start / TvDesk اجرا نشد:\n\n" + ex.Message + "\n\nLog: " + Logger.FilePath,
+                    "TvDesk", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch { }
+            Exit();
         }
     }
 

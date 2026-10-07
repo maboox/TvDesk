@@ -35,6 +35,13 @@
     <EmbeddedResource Include="Resources\catalog.json" LogicalName="TvDesk.catalog.json" />
   </ItemGroup>
 
+  <!-- Files from TvDesk 1.x that may still be in the repo. They are replaced by the new code; never compile them. -->
+  <ItemGroup>
+    <Page Remove="DesktopWindow.xaml;ControlWindow.xaml" />
+    <Compile Remove="DesktopWindow.xaml.cs;ControlWindow.xaml.cs;Behaviors.cs;DesktopHost.cs;Interop.cs;Logger.cs;Playback.cs;Settings.cs;Sources.cs;Tray.cs" />
+    <None Remove="DesktopWindow.xaml;ControlWindow.xaml" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="..\tools\yt-dlp.exe" Condition="Exists('..\tools\yt-dlp.exe')">
       <Link>yt-dlp.exe</Link>

@@ -4,5 +4,11 @@
              ShutdownMode="OnExplicitShutdown"
              Startup="OnStartup"
              Exit="OnExit">
-    <Application.Resources/>
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/TvDesk;component/UI/Theme.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
 </Application>

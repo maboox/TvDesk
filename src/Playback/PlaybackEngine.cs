@@ -30,7 +30,8 @@ public sealed class PlaybackEngine : IDisposable
 
     private readonly LibVLC? _vlc;
     private readonly MediaPlayer? _player;
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly SerialQueue _queue = new();
+    private int _requestedGeneration;
     private Media? _media;
     private IntPtr _hwnd;
     private volatile int _activeGeneration;
@@ -138,29 +139,40 @@ public sealed class PlaybackEngine : IDisposable
         _ = Run(p => p.Hwnd = hwnd);
     }
 
-    public Task PlayAsync(PlayRequest req) => Run(p =>
+    public Task PlayAsync(PlayRequest req)
     {
-        _activeGeneration = req.Generation;
-        var media = req.IsLocalFile
-            ? new Media(_vlc!, req.Url, FromType.FromPath)
-            : new Media(_vlc!, req.Url, FromType.FromLocation);
-        foreach (var o in req.Options) media.AddOption(o);
+        Interlocked.Exchange(ref _requestedGeneration, req.Generation);
+        return Run(p =>
+        {
+            if (req.Generation != Volatile.Read(ref _requestedGeneration)) return;
+            p.Stop();
+            _activeGeneration = req.Generation;
+            var media = req.IsLocalFile
+                ? new Media(_vlc!, req.Url, FromType.FromPath)
+                : new Media(_vlc!, req.Url, FromType.FromLocation);
+            foreach (var o in req.Options) media.AddOption(o);
 
-        var old = _media;
-        _media = media;
-        if (p.Hwnd != _hwnd) p.Hwnd = _hwnd;
-        ApplyFit(p);
-        p.Play(media);
-        ApplyAudio(p);
-        try { old?.Dispose(); } catch { }
-        Logger.Log($"VLC play gen={req.Generation}: {Shorten(req.Url)}");
-    });
+            var old = _media;
+            _media = media;
+            if (p.Hwnd != _hwnd) p.Hwnd = _hwnd;
+            ApplyFit(p);
+            if (!p.Play(media)) Fire(EngineEvent.Error, 0);
+            ApplyAudio(p);
+            try { old?.Dispose(); } catch { }
+            Logger.Log($"VLC play gen={req.Generation}: {Shorten(req.Url)}");
+        });
+    }
 
-    public Task StopAsync(int generation) => Run(p =>
+    public Task StopAsync(int generation)
     {
-        _activeGeneration = generation;
-        p.Stop();
-    });
+        Interlocked.Exchange(ref _requestedGeneration, generation);
+        return Run(p =>
+        {
+            if (generation != Volatile.Read(ref _requestedGeneration)) return;
+            p.Stop();
+            _activeGeneration = generation;
+        });
+    }
 
     public void SetVolume(int volume)
     {
@@ -248,9 +260,8 @@ public sealed class PlaybackEngine : IDisposable
 
     private Task Run(Action<MediaPlayer> action)
     {
-        return Task.Run(async () =>
+        return _queue.Enqueue(() =>
         {
-            await _gate.WaitAsync().ConfigureAwait(false);
             try
             {
                 var p = _player;
@@ -260,10 +271,6 @@ public sealed class PlaybackEngine : IDisposable
             {
                 Logger.Log("VLC operation failed", ex);
             }
-            finally
-            {
-                _gate.Release();
-            }
         });
     }
 
@@ -272,22 +279,13 @@ public sealed class PlaybackEngine : IDisposable
         if (_disposed) return;
         _disposed = true;
         var p = _player;
-        var m = _media;
         var vlc = _vlc;
-        var t = Task.Run(async () =>
+        var t = _queue.Enqueue(() =>
         {
-            await _gate.WaitAsync().ConfigureAwait(false);
-            try
-            {
-                try { p?.Stop(); } catch { }
-                try { p?.Dispose(); } catch { }
-                try { m?.Dispose(); } catch { }
-                try { vlc?.Dispose(); } catch { }
-            }
-            finally
-            {
-                _gate.Release();
-            }
+            try { p?.Stop(); } catch { }
+            try { p?.Dispose(); } catch { }
+            try { _media?.Dispose(); } catch { }
+            try { vlc?.Dispose(); } catch { }
         });
         try { t.Wait(TimeSpan.FromSeconds(4)); } catch { }
     }

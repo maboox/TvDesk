@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +33,8 @@ public sealed class HealthStore
             var data = JsonSerializer.Deserialize<Dictionary<string, Record>>(File.ReadAllText(AppPaths.HealthFile));
             if (data == null) return;
             foreach (var kv in data)
-                if (IsFresh(kv.Value)) _records[kv.Key] = kv.Value;
+                if (kv.Key.Length == 64 && kv.Key.All(Uri.IsHexDigit) && kv.Value != null && IsFresh(kv.Value)) _records[kv.Key] = kv.Value;
+            _dirty = true; // rewrite legacy URL keys without retaining provider tokens
         }
         catch (Exception ex) { Logger.Log("Health load failed", ex); }
     }
@@ -50,14 +52,16 @@ public sealed class HealthStore
     }
 
     private static bool IsFresh(Record r)
-        => (DateTime.UtcNow - r.At) < (r.Alive ? TimeSpan.FromDays(7) : TimeSpan.FromDays(3));
+        => r.At <= DateTime.UtcNow && (DateTime.UtcNow - r.At) < (r.Alive ? TimeSpan.FromDays(7) : TimeSpan.FromDays(3));
 
     public bool? Get(string url)
-        => _records.TryGetValue(url, out var r) && IsFresh(r) ? r.Alive : null;
+        => _records.TryGetValue(Key(url), out var r) && IsFresh(r) ? r.Alive : null;
+
+    private static string Key(string url) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(url)));
 
     public void Set(string url, bool alive)
     {
-        _records[url] = new Record { Alive = alive, At = DateTime.UtcNow };
+        _records[Key(url)] = new Record { Alive = alive, At = DateTime.UtcNow };
         _dirty = true;
     }
 

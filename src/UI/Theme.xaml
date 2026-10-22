@@ -4,27 +4,29 @@
                     xmlns:ui="clr-namespace:TvDesk.UI">
 
   <!-- ============================================================ palette -->
-  <Color x:Key="BgColor">#0B0D12</Color>
-  <Color x:Key="AccentColor">#FF6A3D</Color>
+  <Color x:Key="BgColor">#101210</Color>
+  <Color x:Key="AccentColor">#F5D547</Color>
 
-  <SolidColorBrush x:Key="BgBrush" Color="#0B0D12"/>
-  <SolidColorBrush x:Key="Bg2Brush" Color="#10131A"/>
-  <SolidColorBrush x:Key="SurfaceBrush" Color="#151922"/>
-  <SolidColorBrush x:Key="Surface2Brush" Color="#1B2029"/>
-  <SolidColorBrush x:Key="HoverBrush" Color="#222834"/>
-  <SolidColorBrush x:Key="PressedBrush" Color="#2A3140"/>
-  <SolidColorBrush x:Key="LineBrush" Color="#252B37"/>
-  <SolidColorBrush x:Key="TextBrush" Color="#ECEEF3"/>
-  <SolidColorBrush x:Key="Text2Brush" Color="#A3ABBB"/>
-  <SolidColorBrush x:Key="Text3Brush" Color="#6C7486"/>
-  <SolidColorBrush x:Key="AccentBrush" Color="#FF6A3D"/>
-  <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF845E"/>
-  <SolidColorBrush x:Key="AccentPressedBrush" Color="#E5552B"/>
-  <SolidColorBrush x:Key="AccentSoftBrush" Color="#2BFF6A3D"/>
+  <SolidColorBrush x:Key="BgBrush" Color="#101210"/>
+  <SolidColorBrush x:Key="Bg2Brush" Color="#151815"/>
+  <SolidColorBrush x:Key="SurfaceBrush" Color="#1B1F1B"/>
+  <SolidColorBrush x:Key="Surface2Brush" Color="#232823"/>
+  <SolidColorBrush x:Key="HoverBrush" Color="#2C322B"/>
+  <SolidColorBrush x:Key="PressedBrush" Color="#353D33"/>
+  <SolidColorBrush x:Key="LineBrush" Color="#30382F"/>
+  <SolidColorBrush x:Key="TextBrush" Color="#F3F5EC"/>
+  <SolidColorBrush x:Key="Text2Brush" Color="#BAC3B4"/>
+  <SolidColorBrush x:Key="Text3Brush" Color="#919D8A"/>
+  <SolidColorBrush x:Key="AccentBrush" Color="#F5D547"/>
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="#FFE579"/>
+  <SolidColorBrush x:Key="AccentPressedBrush" Color="#DDBB24"/>
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="#21F5D547"/>
   <SolidColorBrush x:Key="GoodBrush" Color="#3DDC97"/>
   <SolidColorBrush x:Key="BadBrush" Color="#FF5A6E"/>
   <SolidColorBrush x:Key="WarnBrush" Color="#FFB547"/>
-  <SolidColorBrush x:Key="ScrimBrush" Color="#D9080A0E"/>
+  <SolidColorBrush x:Key="ScrimBrush" Color="#E0101210"/>
+
+  <SolidColorBrush x:Key="InkBrush" Color="#191C13"/>
 
   <!-- Replaced at startup by the bundled Vazirmatn font (see App.xaml.cs). -->
   <FontFamily x:Key="UiFont">Segoe UI</FontFamily>
@@ -36,6 +38,15 @@
   <ui:EnumEqualsConverter x:Key="EnumEq"/>
   <ui:ZeroToVisibilityConverter x:Key="ZeroVis"/>
 
+  <Style x:Key="KeyboardFocus" TargetType="Control">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Control">
+          <Rectangle Stroke="{StaticResource AccentBrush}" StrokeThickness="2" RadiusX="8" RadiusY="8" Margin="-3" StrokeDashArray="2,1"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <!-- ============================================================ text -->
   <Style x:Key="Icon" TargetType="TextBlock">
     <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
@@ -94,7 +105,7 @@
     <Setter Property="Padding" Value="16,8"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="SnapsToDevicePixels" Value="True"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -121,7 +132,7 @@
   <Style TargetType="Button" BasedOn="{StaticResource ButtonBase}"/>
 
   <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ButtonBase}">
-    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
     <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="Template">
@@ -153,6 +164,7 @@
   </Style>
 
   <Style x:Key="IconButton" TargetType="Button">
+    <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}"/>
     <Setter Property="Width" Value="36"/>
     <Setter Property="Height" Value="36"/>
     <Setter Property="Foreground" Value="{StaticResource Text2Brush}"/>
@@ -160,7 +172,7 @@
     <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
     <Setter Property="FontSize" Value="15"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
@@ -187,12 +199,12 @@
   <Style x:Key="RoundPlayButton" TargetType="Button">
     <Setter Property="Width" Value="46"/>
     <Setter Property="Height" Value="46"/>
-    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
     <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
     <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
     <Setter Property="FontSize" Value="17"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
@@ -219,7 +231,7 @@
     <Setter Property="Background" Value="Transparent"/>
     <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
     <Setter Property="FontSize" Value="10"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
@@ -261,7 +273,7 @@
     <Setter Property="Height" Value="40"/>
     <Setter Property="Margin" Value="0,1"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="GroupName" Value="nav"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -273,7 +285,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
-              <TextBlock x:Name="Ic" Style="{StaticResource Icon}" Text="{TemplateBinding Tag}" FontSize="15"/>
+              <Image x:Name="Ic" Source="{TemplateBinding Tag}" Width="18" Height="18" HorizontalAlignment="Left" Opacity="0.7"/>
               <ContentPresenter Grid.Column="1" VerticalAlignment="Center"/>
               <Border x:Name="Dot" Grid.Column="2" Width="6" Height="6" CornerRadius="3" Background="{StaticResource AccentBrush}" Visibility="Collapsed"/>
             </Grid>
@@ -286,7 +298,7 @@
             <Trigger Property="IsChecked" Value="True">
               <Setter TargetName="Bd" Property="Background" Value="{StaticResource Surface2Brush}"/>
               <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-              <Setter TargetName="Ic" Property="Foreground" Value="{StaticResource AccentBrush}"/>
+              <Setter TargetName="Ic" Property="Opacity" Value="1"/>
               <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
             </Trigger>
           </ControlTemplate.Triggers>
@@ -300,7 +312,7 @@
     <Setter Property="Foreground" Value="{StaticResource Text2Brush}"/>
     <Setter Property="Padding" Value="16,7"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="RadioButton">
@@ -327,7 +339,7 @@
     <Setter Property="Height" Value="34"/>
     <Setter Property="Padding" Value="12,0"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ToggleButton">
@@ -352,7 +364,7 @@
   <!-- On/off switch. -->
   <Style x:Key="Switch" TargetType="CheckBox">
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="VerticalAlignment" Value="Center"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -362,8 +374,8 @@
               <ColumnDefinition Width="Auto"/>
               <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Border x:Name="Track" Width="42" Height="24" CornerRadius="12" Background="#2A303C" BorderBrush="#3A4252" BorderThickness="1">
-              <Border x:Name="Thumb" Width="16" Height="16" CornerRadius="8" Background="#A3ABBB" HorizontalAlignment="Left" Margin="3,0"/>
+            <Border x:Name="Track" Width="42" Height="24" CornerRadius="12" Background="#30382D" BorderBrush="#465041" BorderThickness="1">
+              <Border x:Name="Thumb" Width="16" Height="16" CornerRadius="8" Background="#BAC3B4" HorizontalAlignment="Left" Margin="3,0"/>
             </Border>
             <ContentPresenter Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"/>
           </Grid>
@@ -372,7 +384,7 @@
               <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentBrush}"/>
               <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
               <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
-              <Setter TargetName="Thumb" Property="Background" Value="White"/>
+              <Setter TargetName="Thumb" Property="Background" Value="{StaticResource InkBrush}"/>
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Track" Property="Opacity" Value="0.9"/>
@@ -389,7 +401,7 @@
   <Style TargetType="CheckBox">
     <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="CheckBox">
@@ -398,8 +410,8 @@
               <ColumnDefinition Width="Auto"/>
               <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Border x:Name="Box" Width="20" Height="20" CornerRadius="6" Background="{StaticResource Surface2Brush}" BorderBrush="#3A4252" BorderThickness="1.5" VerticalAlignment="Center">
-              <TextBlock x:Name="Mark" Style="{StaticResource Icon}" Text="&#xE73E;" FontSize="11" Foreground="White" HorizontalAlignment="Center" Visibility="Collapsed"/>
+            <Border x:Name="Box" Width="20" Height="20" CornerRadius="6" Background="{StaticResource Surface2Brush}" BorderBrush="#465041" BorderThickness="1.5" VerticalAlignment="Center">
+              <TextBlock x:Name="Mark" Style="{StaticResource Icon}" Text="&#xE73E;" FontSize="11" Foreground="{StaticResource InkBrush}" HorizontalAlignment="Center" Visibility="Collapsed"/>
             </Border>
             <ContentPresenter Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"/>
           </Grid>
@@ -429,7 +441,7 @@
     <Setter Property="Padding" Value="12,0"/>
     <Setter Property="MinHeight" Value="38"/>
     <Setter Property="VerticalContentAlignment" Value="Center"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="TextBox">
@@ -447,7 +459,7 @@
               <Setter TargetName="Ph" Property="Visibility" Value="Visible"/>
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="BorderBrush" Value="#3A4252"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="#465041"/>
             </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
               <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
@@ -484,7 +496,7 @@
               <Setter TargetName="Ph" Property="Visibility" Value="Visible"/>
             </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Bd" Property="BorderBrush" Value="#3A4252"/>
+              <Setter TargetName="Bd" Property="BorderBrush" Value="#465041"/>
             </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
               <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
@@ -500,7 +512,7 @@
     <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     <Setter Property="Padding" Value="10,7"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ComboBoxItem">
@@ -529,7 +541,7 @@
     <Setter Property="Padding" Value="12,0,34,0"/>
     <Setter Property="MaxDropDownHeight" Value="380"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
     <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
     <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
@@ -568,11 +580,12 @@
             <ContentPresenter IsHitTestVisible="False" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"
                               Content="{TemplateBinding SelectionBoxItem}"
                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                               ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
                               TextElement.Foreground="{TemplateBinding Foreground}"/>
             <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
                    IsOpen="{TemplateBinding IsDropDownOpen}">
-              <Border Background="{StaticResource Surface2Brush}" BorderBrush="#323949" BorderThickness="1" CornerRadius="10"
+              <Border Background="{StaticResource Surface2Brush}" BorderBrush="#3B4537" BorderThickness="1" CornerRadius="10"
                       Margin="0,4,0,8" Padding="4"
                       MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                       MaxHeight="{TemplateBinding MaxDropDownHeight}">
@@ -597,13 +610,13 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Thumb">
-          <Border x:Name="T" Background="#323949" CornerRadius="4" Margin="2"/>
+          <Border x:Name="T" Background="#3B4537" CornerRadius="4" Margin="2"/>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="T" Property="Background" Value="#454E62"/>
+              <Setter TargetName="T" Property="Background" Value="#52614B"/>
             </Trigger>
             <Trigger Property="IsDragging" Value="True">
-              <Setter TargetName="T" Property="Background" Value="#566078"/>
+              <Setter TargetName="T" Property="Background" Value="#718267"/>
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
@@ -674,7 +687,7 @@
   </Style>
   <Style TargetType="Slider">
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="IsMoveToPointEnabled" Value="True"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -716,13 +729,13 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
   </Style>
 
   <Style x:Key="CategoryItem" TargetType="ListBoxItem">
     <Setter Property="Foreground" Value="{StaticResource Text2Brush}"/>
     <Setter Property="Cursor" Value="Hand"/>
-    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
     <Setter Property="Template">
       <Setter.Value>
@@ -755,7 +768,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ContextMenu">
-          <Border Background="{StaticResource Surface2Brush}" BorderBrush="#323949" BorderThickness="1" CornerRadius="10" Padding="4">
+          <Border Background="{StaticResource Surface2Brush}" BorderBrush="#3B4537" BorderThickness="1" CornerRadius="10" Padding="4">
             <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
           </Border>
         </ControlTemplate>
@@ -811,7 +824,7 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ToolTip">
-          <Border Background="#252B37" BorderBrush="#363E4F" BorderThickness="1" CornerRadius="8" Padding="10,6">
+          <Border Background="#30382F" BorderBrush="#363E4F" BorderThickness="1" CornerRadius="8" Padding="10,6">
             <ContentPresenter/>
           </Border>
         </ControlTemplate>

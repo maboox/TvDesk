@@ -56,6 +56,13 @@ public sealed class Loc : INotifyPropertyChanged
 
     private static readonly Dictionary<string, (string Fa, string En)> Strings = new()
     {
+        ["volume"] = ("صدا", "Volume"),
+        ["hero_title"] = ("دسکتاپت را زنده کن.", "A little life behind your work."),
+        ["hero_body"] = ("کانالت را انتخاب کن؛ پخش و مکث هوشمند را به TvDesk بسپار.", "Choose a channel. Let smart pause take care of the rest."),
+        ["hero_label"] = ("فضای تماشای تو", "YOUR DESKTOP, ON AIR"),
+        ["privacy_title"] = ("خصوصی، روی همین دستگاه", "Private, on this device"),
+        ["privacy_body"] = ("تنظیمات و کش پلی‌لیست با حساب ویندوز محافظت می‌شوند. بدون تله‌متری. منابع پخش و تصویر، IP شما را می‌بینند. فقط منابع مورداعتماد اضافه کنید.", "Settings and playlist caches use Windows account protection. No telemetry. Stream and logo providers receive your IP address. Add only sources you trust."),
+        ["proxy_invalid"] = ("آدرس پراکسی معتبر نیست؛ اتصال مسدود می‌ماند.", "Invalid proxy address; connections remain blocked."),
         // ---------- app / navigation
         ["app_tagline"] = ("تلویزیون زنده روی دسکتاپ", "Live TV on your desktop"),
         ["nav_watch"] = ("تماشا", "WATCH"),
@@ -252,8 +259,8 @@ public sealed class Loc : INotifyPropertyChanged
         ["set_vout"] = ("خروجی تصویر", "Video output"),
         ["set_vout_hint"] = ("«سازگار» روی همه‌ی نسخه‌های ویندوز پشت آیکون‌ها کار می‌کند. Direct3D سریع‌تر است؛ اگر تصویر سیاه ماند برگرد روی «سازگار».", "“Compatible” works behind the icons on every Windows build. Direct3D is faster; switch back if the video stays black."),
         ["set_ytdlp"] = ("yt-dlp (یوتیوب، توییچ و…)", "yt-dlp (YouTube, Twitch…)"),
-        ["set_ytdlp_hint"] = ("هر چند روز خودکار به‌روز می‌شود", "Updated automatically every few days"),
-        ["btn_update"] = ("به‌روزرسانی", "Update"),
+        ["set_ytdlp_hint"] = ("نسخهٔ مشخص و بررسی‌شده؛ نسخه‌های جدید همراه برنامه ارائه می‌شوند.", "Pinned and verified. New helper versions ship with app updates."),
+        ["btn_update"] = ("نصب / ترمیم", "Install / repair"),
         ["ytdlp_missing"] = ("نصب نیست", "not installed"),
         ["ytdlp_updating"] = ("در حال به‌روزرسانی…", "updating…"),
         ["set_trouble"] = ("رفع مشکل", "Troubleshooting"),

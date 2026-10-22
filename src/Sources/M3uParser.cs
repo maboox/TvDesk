@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using TvDesk.Core;
 
 namespace TvDesk.Sources;
 
@@ -22,7 +23,7 @@ public sealed class M3uEntry
 /// Kodi-style "url|User-Agent=..." suffixes and bare URL lists.</summary>
 public static class M3uParser
 {
-    private static readonly Regex AttrRegex = new(@"([A-Za-z0-9_\-]+)\s*=\s*""([^""]*)""", RegexOptions.Compiled);
+    private static readonly Regex AttrRegex = new(@"([A-Za-z0-9_\-]+)\s*=\s*""([^""]*)""", RegexOptions.Compiled | RegexOptions.NonBacktracking, TimeSpan.FromSeconds(1));
 
     public static bool LooksLikePlaylist(string text)
         => text.Contains("#EXTINF", StringComparison.OrdinalIgnoreCase);
@@ -40,6 +41,12 @@ public static class M3uParser
         while ((raw = reader.ReadLine()) != null)
         {
             string line = raw.Trim().TrimStart('﻿');
+            if (line.Length > 16384)
+            {
+                current = null;
+                pendingGroup = pendingUa = pendingRef = null;
+                continue;
+            }
             if (line.Length == 0) continue;
 
             if (line.StartsWith("#EXTINF", StringComparison.OrdinalIgnoreCase))
@@ -96,7 +103,9 @@ public static class M3uParser
             entry.UserAgent ??= pendingUa;
             entry.Referrer ??= pendingRef;
             if (string.IsNullOrWhiteSpace(entry.Title)) entry.Title = entry.Attr("tvg-name") ?? TitleFromUrl(entry.Url);
-            if (entry.Url.Length > 0) list.Add(entry);
+            entry.UserAgent = MediaPolicy.SafeHeader(entry.UserAgent);
+            entry.Referrer = MediaPolicy.SafeHeader(entry.Referrer);
+            if (MediaPolicy.IsRemoteMedia(entry.Url)) list.Add(entry);
 
             current = null;
             pendingGroup = pendingUa = pendingRef = null;

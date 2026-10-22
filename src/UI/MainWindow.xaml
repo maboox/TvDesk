@@ -3,20 +3,20 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:TvDesk.Core"
         xmlns:ui="clr-namespace:TvDesk.UI"
-        Title="TvDesk" Width="1200" Height="760" MinWidth="940" MinHeight="600"
+        Title="TvDesk" Width="1320" Height="820" MinWidth="1040" MinHeight="680"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}"
         FontFamily="{DynamicResource UiFont}" FontSize="13"
         FlowDirection="{Binding Flow, Source={x:Static l:Loc.I}}"
         UseLayoutRounding="True" SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
-        Icon="pack://application:,,,/Resources/icon.ico">
+        Icon="pack://application:,,,/TvDesk;component/Resources/icon.ico">
 
   <WindowChrome.WindowChrome>
     <WindowChrome CaptionHeight="56" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
   </WindowChrome.WindowChrome>
 
-  <Grid x:Name="Root">
+  <Grid x:Name="Root" Background="{StaticResource BgBrush}">
     <Grid.RowDefinitions>
       <RowDefinition Height="56"/>
       <RowDefinition Height="*"/>
@@ -32,7 +32,7 @@
 
     <StackPanel Orientation="Horizontal" Margin="22,0,0,0" VerticalAlignment="Center">
       <Border Width="32" Height="32" CornerRadius="10" Background="{StaticResource AccentBrush}">
-        <TextBlock Style="{StaticResource Icon}" Text="&#xE7F4;" Foreground="White" FontSize="16" HorizontalAlignment="Center"/>
+        <TextBlock Style="{StaticResource Icon}" Text="&#xE7F4;" Foreground="{StaticResource InkBrush}" FontSize="16" HorizontalAlignment="Center"/>
       </Border>
       <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
         <TextBlock Text="TvDesk" FontSize="16.5" FontWeight="Bold" FlowDirection="LeftToRight" HorizontalAlignment="Left"/>
@@ -51,19 +51,19 @@
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel>
           <TextBlock Style="{StaticResource SectionLabel}" Text="{l:T nav_watch}" Margin="14,10,0,6"/>
-          <RadioButton Style="{StaticResource NavItem}" Tag="&#xE80F;" Content="{l:T nav_browse}"
+          <RadioButton Style="{StaticResource NavItem}" Tag="{StaticResource Lucide-house}" Content="{l:T nav_browse}"
                        IsChecked="{Binding Page, Converter={StaticResource EnumEq}, ConverterParameter=Browse}"/>
-          <RadioButton Style="{StaticResource NavItem}" Tag="&#xE734;" Content="{l:T nav_favorites}"
+          <RadioButton Style="{StaticResource NavItem}" Tag="{StaticResource Lucide-star}" Content="{l:T nav_favorites}"
                        IsChecked="{Binding Page, Converter={StaticResource EnumEq}, ConverterParameter=Favorites}"/>
-          <RadioButton Style="{StaticResource NavItem}" Tag="&#xE81C;" Content="{l:T nav_recent}"
+          <RadioButton Style="{StaticResource NavItem}" Tag="{StaticResource Lucide-clock}" Content="{l:T nav_recent}"
                        IsChecked="{Binding Page, Converter={StaticResource EnumEq}, ConverterParameter=Recent}"/>
-          <RadioButton Style="{StaticResource NavItem}" Tag="&#xE71B;" Content="{l:T nav_mine}"
+          <RadioButton Style="{StaticResource NavItem}" Tag="{StaticResource Lucide-link}" Content="{l:T nav_mine}"
                        IsChecked="{Binding Page, Converter={StaticResource EnumEq}, ConverterParameter=Mine}"/>
 
           <TextBlock Style="{StaticResource SectionLabel}" Text="{l:T nav_manage}"/>
-          <RadioButton Style="{StaticResource NavItem}" Tag="&#xE774;" Content="{l:T nav_sources}"
+          <RadioButton Style="{StaticResource NavItem}" Tag="{StaticResource Lucide-radio}" Content="{l:T nav_sources}"
                        IsChecked="{Binding Page, Converter={StaticResource EnumEq}, ConverterParameter=Sources}"/>
-          <RadioButton Style="{StaticResource NavItem}" Tag="&#xE713;" Content="{l:T nav_settings}"
+          <RadioButton Style="{StaticResource NavItem}" Tag="{StaticResource Lucide-settings}" Content="{l:T nav_settings}"
                        IsChecked="{Binding Page, Converter={StaticResource EnumEq}, ConverterParameter=Settings}"/>
 
           <!-- Quick tips card -->
@@ -97,13 +97,13 @@
     </DockPanel>
 
     <!-- ================================================================ title bar (search + caption buttons) -->
-    <Grid Grid.Column="1">
-      <TextBox x:Name="SearchBox" Style="{StaticResource SearchBox}" Width="440" HorizontalAlignment="Left" Margin="28,0,0,0"
+    <Grid Grid.Column="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <TextBox x:Name="SearchBox" Style="{StaticResource SearchBox}" MaxWidth="500" HorizontalAlignment="Stretch" Margin="24,0,24,0" AutomationProperties.Name="{l:T search_placeholder}"
                VerticalAlignment="Center" Tag="{l:T search_placeholder}"
                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                WindowChrome.IsHitTestVisibleInChrome="True"
                Visibility="{Binding ShowOnboarding, Converter={StaticResource InvBoolVis}}"/>
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" WindowChrome.IsHitTestVisibleInChrome="True">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" WindowChrome.IsHitTestVisibleInChrome="True">
         <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="OnMinimize" ToolTip="{l:T tip_minimize}"/>
         <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xE922;" Click="OnMaximize"/>
         <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" Click="OnClose" ToolTip="{l:T tip_close}"/>
@@ -160,7 +160,7 @@
         <!-- volume -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
           <Button Style="{StaticResource IconButton}" Content="{Binding MuteGlyph}" Command="{Binding ToggleMuteCommand}" ToolTip="{l:T tip_mute}"/>
-          <Slider Width="130" Minimum="0" Maximum="100" Value="{Binding Volume}" VerticalAlignment="Center" Margin="6,0,10,0"
+          <Slider AutomationProperties.Name="{l:T volume}" Width="130" Minimum="0" Maximum="100" Value="{Binding Volume}" VerticalAlignment="Center" Margin="6,0,10,0"
                   SmallChange="2" LargeChange="10"/>
           <TextBlock Text="{Binding VolumeText}" Width="26" Foreground="{StaticResource Text2Brush}" FontSize="12" VerticalAlignment="Center"/>
         </StackPanel>

@@ -133,7 +133,6 @@ public sealed class AppController : IDisposable
                 }
             }
 
-            _ = MaintainYtDlpAsync();
             Logger.Log("Startup complete");
         }
         catch (Exception ex)
@@ -172,25 +171,6 @@ public sealed class AppController : IDisposable
         ApplyMute();
         if (!_engine.Available)
             _vm?.Toast(Loc.T("toast_vlc_failed"));
-    }
-
-    private async Task MaintainYtDlpAsync()
-    {
-        try
-        {
-            await Task.Delay(TimeSpan.FromSeconds(20));
-            if (await YtDlp.EnsureAsync(CancellationToken.None) == null) return;
-            if ((DateTime.UtcNow - Settings.YtDlpLastUpdate).TotalDays >= 3)
-            {
-                bool ok = await YtDlp.UpdateAsync();
-                if (ok)
-                {
-                    Settings.YtDlpLastUpdate = DateTime.UtcNow;
-                    SaveSoon();
-                }
-            }
-        }
-        catch (Exception ex) { Logger.Log("yt-dlp maintenance", ex); }
     }
 
     // ======================================================================================= library
@@ -340,6 +320,11 @@ public sealed class AppController : IDisposable
     public void Play(Channel c)
     {
         if (c == null || _disposed) return;
+        if (!MediaPolicy.IsPlayable(c.Url)) { _vm?.Toast(Loc.T("add_err_link")); return; }
+        CancelRetry();
+        _playCts?.Cancel();
+        int generation = ++_expectedGen;
+        if (_engine != null) _ = _engine.StopAsync(generation);
         if (Current != null && !ReferenceEquals(Current, c)) Current.IsPlaying = false;
         Current = c;
         c.IsPlaying = true;
@@ -394,6 +379,11 @@ public sealed class AppController : IDisposable
         int gen = ++_expectedGen;
         _hasVout = false;
         SetState(PlayerState.Resolving);
+        if (!StreamResolver.IsLocalFile(c.Url) && Settings.Proxy == ProxyMode.Custom && !Http.IsValidProxy(Settings.CustomProxy))
+        {
+            OnStreamFailed(Loc.T("proxy_invalid"));
+            return;
+        }
 
         ResolvedStream resolved;
         try
@@ -405,7 +395,7 @@ public sealed class AppController : IDisposable
         {
             if (cts.IsCancellationRequested || gen != _expectedGen) return;
             Logger.Log($"Resolve failed for {c.Url}: {ex.Message}");
-            OnStreamFailed(Loc.T("st_resolve_failed") + " " + Short(ex.Message));
+            OnStreamFailed(Loc.T("st_resolve_failed"));
             return;
         }
         if (cts.IsCancellationRequested || gen != _expectedGen || _disposed) return;
@@ -503,7 +493,7 @@ public sealed class AppController : IDisposable
 
     private void OnStreamFailed(string reason)
     {
-        if (_userStopped || _autoPaused || Current == null) return;
+        if (_disposed || _userStopped || _autoPaused || Current == null || State is PlayerState.Reconnecting or PlayerState.Error) return;
         _retry++;
         Logger.Log($"Stream failure #{_retry} ({reason}) for {Current.Url}");
 
@@ -619,7 +609,11 @@ public sealed class AppController : IDisposable
         {
             string path = Path.Combine(AppPaths.Cache, "freeze.png");
             bool ok = await engine.SnapshotAsync(path);
-            if (!_autoPaused || gen != _expectedGen) return; // resumed meanwhile
+            if (!_autoPaused || gen != _expectedGen)
+            {
+                try { File.Delete(path); } catch { }
+                return;
+            }
             _host?.ShowFrozen(ok ? path : null, Current?.Name ?? "");
         }
         else

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-label="TvDesk. A little life behind your work. Live TV, IPTV and video wallpaper for Windows.">
+  <defs>
+    <linearGradient id="bg"><stop stop-color="#101210"/><stop offset="1" stop-color="#293122"/></linearGradient>
+    <linearGradient id="gold" x2="1" y2="1"><stop stop-color="#ffe982"/><stop offset="1" stop-color="#d7b52c"/></linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#48513d" stroke-width=".5"/></pattern>
+  </defs>
+  <rect width="1280" height="360" rx="24" fill="url(#bg)"/>
+  <rect x="680" width="600" height="360" fill="url(#grid)" opacity=".45"/>
+  <circle cx="1150" cy="44" r="210" fill="#f5d547" opacity=".035"/>
+  <rect x="60" y="51" width="48" height="48" rx="14" fill="url(#gold)"/>
+  <g fill="none" stroke="#191c13" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="70" y="66" width="28" height="22" rx="3"/><path d="m77 58 7 7 7-7"/></g>
+  <text x="124" y="84" font-family="Segoe UI,Arial,sans-serif" font-size="28" font-weight="700" fill="#f3f5ec">TvDesk</text>
+  <text x="60" y="158" font-family="Segoe UI,Arial,sans-serif" font-size="40" font-weight="700" fill="#f3f5ec">Your desktop.</text>
+  <text x="60" y="211" font-family="Segoe UI,Arial,sans-serif" font-size="40" font-weight="700" fill="#f5d547">A little more alive.</text>
+  <text x="60" y="252" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#bac3b4">Live TV · IPTV · Video wallpaper</text>
+  <rect x="60" y="285" width="119" height="28" rx="14" fill="#30382f"/>
+  <text x="119" y="304" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#e3e8da">WINDOWS x64</text>
+  <text x="198" y="304" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#bac3b4">ENGLISH + فارسی</text>
+  <g transform="translate(770 69)">
+    <rect width="385" height="220" rx="18" fill="#0b0f0b" stroke="#536044" stroke-width="2"/>
+    <rect x="12" y="12" width="361" height="183" rx="9" fill="#273d31"/>
+    <path d="M12 161 90 66 166 147 236 52 373 161V195H12Z" fill="#486449"/>
+    <path d="m12 177 109-61 97 64 97-84 58 65v34H12Z" fill="#6b8053"/>
+    <circle cx="294" cy="54" r="22" fill="#f5d547"/>
+    <g fill="#f1f4e8" opacity=".65"><rect x="25" y="30" width="13" height="13" rx="3"/><rect x="25" y="57" width="13" height="13" rx="3"/><rect x="25" y="84" width="13" height="13" rx="3"/></g>
+    <rect x="144" y="218" width="96" height="17" rx="5" fill="#45503b"/><rect x="119" y="235" width="146" height="6" rx="3" fill="#65714f"/>
+    <rect x="245" y="164" width="117" height="33" rx="12" fill="#141c14"/>
+    <circle cx="262" cy="180" r="4" fill="#f5d547"/>
+    <text x="274" y="184" font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#f3f5ec">ON YOUR DESKTOP</text>
+  </g>
+</svg>

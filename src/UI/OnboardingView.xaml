@@ -7,8 +7,8 @@
     <Ellipse Width="900" Height="600" VerticalAlignment="Top" Margin="0,-340,0,0" IsHitTestVisible="False">
       <Ellipse.Fill>
         <RadialGradientBrush>
-          <GradientStop Color="#33FF6A3D" Offset="0"/>
-          <GradientStop Color="#00FF6A3D" Offset="1"/>
+          <GradientStop Color="#33F5D547" Offset="0"/>
+          <GradientStop Color="#00F5D547" Offset="1"/>
         </RadialGradientBrush>
       </Ellipse.Fill>
     </Ellipse>
@@ -16,7 +16,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" WindowChrome.IsHitTestVisibleInChrome="True">
       <StackPanel Width="620" Margin="0,64,0,40" HorizontalAlignment="Center">
         <Border Width="64" Height="64" CornerRadius="18" Background="{StaticResource AccentBrush}" HorizontalAlignment="Center">
-          <TextBlock Style="{StaticResource Icon}" Text="&#xE7F4;" Foreground="White" FontSize="30" HorizontalAlignment="Center"/>
+          <TextBlock Style="{StaticResource Icon}" Text="&#xE7F4;" Foreground="{StaticResource InkBrush}" FontSize="30" HorizontalAlignment="Center"/>
         </Border>
         <TextBlock Text="{l:T ob_title}" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,20,0,0"/>
         <TextBlock Text="{l:T ob_subtitle}" Style="{StaticResource Muted}" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,8,0,0" MaxWidth="520"/>

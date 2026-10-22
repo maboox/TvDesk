@@ -1,0 +1,22 @@
+name: Bug report / گزارش باگ
+description: Report a reproducible problem without private data.
+body:
+  - type: markdown
+    attributes:
+      value: 'Do not attach settings, private stream links, tokens, or unredacted logs. Security issues: see SECURITY.md.'
+  - type: input
+    id: version
+    attributes:
+      label: TvDesk version and Windows build
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected result and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostic excerpt or screenshot

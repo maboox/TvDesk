@@ -90,8 +90,7 @@ public partial class AddDialog : Window
     private bool ValidateLink(out string url)
     {
         url = StreamResolver.Sanitize(LinkUrl.Text);
-        bool ok = url.Length > 0 &&
-                  (Uri.TryCreate(url, UriKind.Absolute, out var u) && !string.IsNullOrEmpty(u.Scheme) || StreamResolver.IsLocalFile(url));
+        bool ok = MediaPolicy.IsPlayable(url);
         if (!ok) ShowError(Loc.T("add_err_link"));
         return ok;
     }
@@ -136,7 +135,7 @@ public partial class AddDialog : Window
         string url = StreamResolver.Sanitize(PlaylistUrl.Text);
         bool valid = url.Length > 0 &&
                      ((Uri.TryCreate(url, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps)) ||
-                      File.Exists(url));
+                      (MediaPolicy.IsLocalPath(url) && File.Exists(StreamResolver.LocalPath(url))));
         if (!valid)
         {
             ShowError(Loc.T("add_err_playlist"));
@@ -166,7 +165,11 @@ public partial class AddDialog : Window
     private bool ValidateFile(out string path)
     {
         path = StreamResolver.Sanitize(FilePath.Text);
-        if (path.Length > 0 && File.Exists(path)) return true;
+        if (MediaPolicy.IsLocalPath(path) && File.Exists(StreamResolver.LocalPath(path)))
+        {
+            path = StreamResolver.LocalPath(path);
+            return true;
+        }
         ShowError(Loc.T("add_err_file"));
         return false;
     }

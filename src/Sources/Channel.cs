@@ -137,13 +137,13 @@ public static class Palette
         return b;
     }
 
-    public static readonly Brush Accent = B(0xFFFF6A3D);
+    public static readonly Brush Accent = B(0xFFF5D547);
     public static readonly Brush Muted = B(0xFF5E6676);
     public static readonly Brush Good = B(0xFF3DDC97);
     public static readonly Brush Bad = B(0xFFFF5A6E);
     public static readonly Brush Warn = B(0xFFFFB547);
-    public static readonly Brush Text2 = B(0xFFA3ABBB);
-    public static readonly Brush Text3 = B(0xFF6C7486);
+    public static readonly Brush Text2 = B(0xFFBAC3B4);
+    public static readonly Brush Text3 = B(0xFF919D8A);
     public static readonly Brush Transparent = B(0x00000000);
 
     private static readonly Brush[] Tiles =

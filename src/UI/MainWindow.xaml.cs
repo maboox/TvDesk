@@ -37,6 +37,7 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
         {
+            _vm.Page = Page.Browse;
             SearchBox.Focus();
             SearchBox.SelectAll();
             e.Handled = true;
@@ -85,7 +86,7 @@ internal static class WindowEffects
             Desktop.Native.DwmSetWindowAttribute(hwnd, 20, ref on, sizeof(int));       // DWMWA_USE_IMMERSIVE_DARK_MODE
             int round = 2;
             Desktop.Native.DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));    // DWMWA_WINDOW_CORNER_PREFERENCE = ROUND
-            int border = 0x00372B25;                                                    // COLORREF (BGR) for #252B37
+            int border = 0x002F3830;                                                    // COLORREF (BGR) for #252B37
             Desktop.Native.DwmSetWindowAttribute(hwnd, 34, ref border, sizeof(int));   // DWMWA_BORDER_COLOR
         }
         catch { }

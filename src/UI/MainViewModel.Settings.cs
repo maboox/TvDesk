@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -13,6 +15,28 @@ namespace TvDesk.UI;
 /// <summary>Settings page bindings.</summary>
 public sealed partial class MainViewModel
 {
+    private readonly Dictionary<string, ObservableCollection<Option>> _optionLists = new();
+
+    // Preserve selected objects when translated labels or available monitors change.
+    private ObservableCollection<Option> Options(List<Option> fresh, [CallerMemberName] string key = "")
+    {
+        if (!_optionLists.TryGetValue(key, out var items))
+            _optionLists[key] = items = new ObservableCollection<Option>();
+        for (int i = items.Count - 1; i >= 0; i--)
+            if (!fresh.Any(x => x.Key == items[i].Key)) items.RemoveAt(i);
+        for (int i = 0; i < fresh.Count; i++)
+        {
+            var item = items.FirstOrDefault(x => x.Key == fresh[i].Key);
+            if (item == null) items.Insert(i, fresh[i]);
+            else
+            {
+                item.Label = fresh[i].Label;
+                int old = items.IndexOf(item);
+                if (old != i) items.Move(old, i);
+            }
+        }
+        return items;
+    }
     public RelayCommand OpenLogsCommand { get; private set; } = null!;
     public RelayCommand UpdateYtDlpCommand { get; private set; } = null!;
     public RelayCommand ClearCacheCommand { get; private set; } = null!;
@@ -82,7 +106,7 @@ public sealed partial class MainViewModel
 
     // ---------------------------------------------------------------- wallpaper
 
-    public List<Option> MonitorOptions
+    public ObservableCollection<Option> MonitorOptions
     {
         get
         {
@@ -94,7 +118,7 @@ public sealed partial class MainViewModel
                 foreach (var m in monitors)
                     list.Add(new Option(m.Key, Loc.F("opt_monitor_n", m.Label) + (m.Primary ? " ★" : "")));
             }
-            return list;
+            return Options(list);
         }
     }
 
@@ -111,12 +135,12 @@ public sealed partial class MainViewModel
         }
     }
 
-    public List<Option> FitOptions => new()
+    public ObservableCollection<Option> FitOptions => Options(new()
     {
         new("Fill", Loc.T("opt_fit_fill")),
         new("Fit", Loc.T("opt_fit_fit")),
         new("Stretch", Loc.T("opt_fit_stretch")),
-    };
+    });
 
     public string Fit
     {
@@ -131,13 +155,13 @@ public sealed partial class MainViewModel
         }
     }
 
-    public List<Option> QualityOptions => new()
+    public ObservableCollection<Option> QualityOptions => Options(new()
     {
         new("auto", Loc.T("opt_quality_auto")),
         new("1080", "1080p"),
         new("720", "720p"),
         new("480", Loc.T("opt_quality_480")),
-    };
+    });
 
     public string Quality
     {
@@ -152,12 +176,12 @@ public sealed partial class MainViewModel
         }
     }
 
-    public List<Option> VideoOutputOptions => new()
+    public ObservableCollection<Option> VideoOutputOptions => Options(new()
     {
         new("gdi", Loc.T("opt_vout_gdi")),
         new("d3d11", Loc.T("opt_vout_d3d11")),
         new("auto", Loc.T("opt_vout_auto")),
-    };
+    });
 
     public string VideoOutput
     {
@@ -187,12 +211,12 @@ public sealed partial class MainViewModel
 
     // ---------------------------------------------------------------- smart pause
 
-    public List<Option> ActionOptions => new()
+    public ObservableCollection<Option> ActionOptions => Options(new()
     {
         new("None", Loc.T("act_none")),
         new("Mute", Loc.T("act_mute")),
         new("Pause", Loc.T("act_pause")),
-    };
+    });
 
     private string GetAction(AutoAction a) => a.ToString();
 
@@ -274,13 +298,13 @@ public sealed partial class MainViewModel
         set { if (value == C.Settings.HideBroken) return; C.Settings.HideBroken = value; C.SaveSoon(); Raise(); RebuildFacets(); Refilter(); }
     }
 
-    public List<Option> RefreshOptions => new()
+    public ObservableCollection<Option> RefreshOptions => Options(new()
     {
         new("6", Loc.F("opt_hours", 6)),
         new("24", Loc.T("opt_day1")),
         new("48", Loc.F("opt_days", 2)),
         new("168", Loc.T("opt_week1")),
-    };
+    });
 
     public string RefreshHours
     {
@@ -296,12 +320,12 @@ public sealed partial class MainViewModel
 
     // ---------------------------------------------------------------- network
 
-    public List<Option> ProxyOptions => new()
+    public ObservableCollection<Option> ProxyOptions => Options(new()
     {
         new("System", Loc.T("opt_proxy_system")),
         new("None", Loc.T("opt_proxy_none")),
         new("Custom", Loc.T("opt_proxy_custom")),
-    };
+    });
 
     public string Proxy
     {
@@ -327,6 +351,7 @@ public sealed partial class MainViewModel
             if (value == C.Settings.CustomProxy) return;
             C.Settings.CustomProxy = value;
             C.ApplyProxy();
+            if (IsCustomProxy && !Http.IsValidProxy(value)) Toast(Loc.T("proxy_invalid"));
             Raise();
         }
     }

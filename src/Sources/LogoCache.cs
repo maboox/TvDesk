@@ -16,14 +16,14 @@ public static class LogoCache
 {
     private static readonly ConcurrentDictionary<string, ImageSource> Memory = new();
     private static readonly ConcurrentDictionary<string, byte> Failed = new();
-    private static readonly ConcurrentDictionary<string, Task<ImageSource?>> InFlight = new();
+    private static readonly ConcurrentDictionary<string, Lazy<Task<ImageSource?>>> InFlight = new();
     private static readonly SemaphoreSlim Slots = new(6);
 
     public static Task<ImageSource?> LoadAsync(string url)
     {
         if (Memory.TryGetValue(url, out var img)) return Task.FromResult<ImageSource?>(img);
         if (Failed.ContainsKey(url)) return Task.FromResult<ImageSource?>(null);
-        return InFlight.GetOrAdd(url, u => LoadCoreAsync(u));
+        return InFlight.GetOrAdd(url, u => new Lazy<Task<ImageSource?>>(() => LoadCoreAsync(u))).Value;
     }
 
     private static async Task<ImageSource?> LoadCoreAsync(string url)
@@ -44,12 +44,13 @@ public static class LogoCache
                 byte[]? data = null;
                 if (File.Exists(file) && (DateTime.UtcNow - File.GetLastWriteTimeUtc(file)).TotalDays < 30)
                 {
+                    if (new FileInfo(file).Length > 4_000_000) throw new InvalidDataException("Cached logo too large.");
                     data = await File.ReadAllBytesAsync(file).ConfigureAwait(false);
                 }
                 else
                 {
                     using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                    data = await Http.Client.GetByteArrayAsync(uri, cts.Token).ConfigureAwait(false);
+                    data = await Download.BytesAsync(Http.Client, uri.AbsoluteUri, 4_000_000, cts.Token).ConfigureAwait(false);
                     if (data.Length == 0 || data.Length > 4_000_000) data = null;
                     else
                     {
@@ -83,12 +84,13 @@ public static class LogoCache
     {
         try
         {
+            using var stream = new MemoryStream(data);
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
             bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
             bmp.DecodePixelWidth = 96;
-            bmp.StreamSource = new MemoryStream(data);
+            bmp.StreamSource = stream;
             bmp.EndInit();
             bmp.Freeze();
             return bmp;
@@ -101,4 +103,10 @@ public static class LogoCache
 
     private static string Hash(string s)
         => Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(s))).ToLowerInvariant();
+
+    public static void Clear()
+    {
+        Memory.Clear();
+        Failed.Clear();
+    }
 }

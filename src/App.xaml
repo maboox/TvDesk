@@ -8,6 +8,7 @@
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/TvDesk;component/UI/Theme.xaml"/>
+        <ResourceDictionary Source="/TvDesk;component/UI/Icons.xaml"/>
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

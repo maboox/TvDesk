@@ -128,6 +128,10 @@ public sealed class WallpaperHost : Form
             }
         }
         catch (Exception ex) { Logger.Log("Loading freeze frame failed", ex); }
+        finally
+        {
+            if (imagePath != null) { try { File.Delete(imagePath); } catch { } }
+        }
 
         _overlay.Set(OverlayMode.Frozen, title, "", img);
         _overlay.Visible = true;

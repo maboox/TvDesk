@@ -47,7 +47,7 @@ public sealed class ChannelLibrary
                 Playlists = new List<PlaylistRef> { new() { Url = cs.Url, GroupMeans = "auto" } }
             });
         }
-        return list;
+        return list.DistinctBy(d => d.Id).ToList();
     }
 
     public async Task LoadAsync(AppSettings settings, Catalog catalog, HealthStore health, bool forceRefresh, CancellationToken ct)
@@ -111,7 +111,7 @@ public sealed class ChannelLibrary
 
                 foreach (var ic in def.Channels)
                 {
-                    if (string.IsNullOrWhiteSpace(ic.Url)) continue;
+                    if (!MediaPolicy.IsRemoteMedia(ic.Url)) continue;
                     var c = new Channel
                     {
                         Name = ic.Name,
@@ -175,6 +175,7 @@ public sealed class ChannelLibrary
         }, ct);
 
         foreach (var st in status.Values) st.Loading = false;
+        ct.ThrowIfCancellationRequested();
         Channels = result;
         Logger.Log($"Library loaded: {result.Count} channels from {defs.Count} sources");
     }
@@ -228,7 +229,7 @@ public sealed class ChannelLibrary
     private static Channel? Build(M3uEntry e, PlaylistRef pl, SourceDef def)
     {
         string url = e.Url.Trim();
-        if (url.Length == 0 || url.StartsWith("#")) return null;
+        if (!MediaPolicy.IsRemoteMedia(url)) return null;
 
         string rawName = string.IsNullOrWhiteSpace(e.Title) ? (e.Attr("tvg-name") ?? url) : e.Title;
         string name = NameCleaner.Clean(rawName, out var quality, out var geo, out var notAlways);
@@ -239,8 +240,8 @@ public sealed class ChannelLibrary
             Url = url,
             LogoUrl = e.Attr("tvg-logo"),
             TvgId = e.Attr("tvg-id"),
-            UserAgent = e.UserAgent,
-            Referrer = e.Referrer,
+            UserAgent = MediaPolicy.SafeHeader(e.UserAgent),
+            Referrer = MediaPolicy.SafeHeader(e.Referrer),
             Quality = quality,
             GeoBlocked = geo,
             NotAlways24x7 = notAlways,
@@ -392,10 +393,11 @@ public sealed class ChannelLibrary
         try
         {
             // Local playlist file.
-            if (!url.Contains("://") || url.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+            if (MediaPolicy.IsLocalPath(url))
             {
                 string path = url.StartsWith("file:", StringComparison.OrdinalIgnoreCase) ? new Uri(url).LocalPath : url;
                 if (!File.Exists(path)) return FetchResult.Failed("file not found");
+                if (new FileInfo(path).Length > 16_000_000) return FetchResult.Failed("playlist too large");
                 return new FetchResult { Text = await File.ReadAllTextAsync(path, ct), UpdatedAt = File.GetLastWriteTime(path) };
             }
 
@@ -405,16 +407,16 @@ public sealed class ChannelLibrary
             {
                 var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(file);
                 if (age.TotalHours < refreshHours)
-                    return new FetchResult { Text = await File.ReadAllTextAsync(file, ct), UpdatedAt = File.GetLastWriteTime(file) };
+                    return new FetchResult { Text = PrivateFile.Decode(await File.ReadAllTextAsync(file, ct)), UpdatedAt = File.GetLastWriteTime(file) };
             }
 
             try
             {
-                string text = await Http.Client.GetStringAsync(url, ct);
+                string text = Encoding.UTF8.GetString(await Download.BytesAsync(Http.Client, url, 16_000_000, ct));
                 if (text.Length < 10 || (!M3uParser.LooksLikePlaylist(text) && !text.Contains("://")))
                     throw new InvalidDataException("not an M3U playlist");
-                string tmp = file + ".tmp";
-                await File.WriteAllTextAsync(tmp, text, ct);
+                string tmp = file + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                await File.WriteAllTextAsync(tmp, PrivateFile.Encode(text), ct);
                 File.Move(tmp, file, true);
                 Logger.Log($"Downloaded playlist {url} ({text.Length / 1024} KB)");
                 return new FetchResult { Text = text, UpdatedAt = DateTime.Now };
@@ -423,7 +425,7 @@ public sealed class ChannelLibrary
             {
                 Logger.Log($"Playlist download failed: {url}: {ex.Message}");
                 if (haveCache)
-                    return new FetchResult { Text = await File.ReadAllTextAsync(file, ct), Stale = true, UpdatedAt = File.GetLastWriteTime(file) };
+                    return new FetchResult { Text = PrivateFile.Decode(await File.ReadAllTextAsync(file, ct)), Stale = true, UpdatedAt = File.GetLastWriteTime(file) };
                 return FetchResult.Failed(ex is HttpRequestException hre && hre.StatusCode != null
                     ? $"HTTP {(int)hre.StatusCode.Value}"
                     : ex.Message);
@@ -438,6 +440,7 @@ public sealed class ChannelLibrary
 
     public static void ClearCache()
     {
+        LogoCache.Clear();
         try
         {
             foreach (var f in Directory.GetFiles(AppPaths.Cache)) { try { File.Delete(f); } catch { } }

@@ -8,7 +8,7 @@
     <Style x:Key="ChannelRow" TargetType="ListBoxItem">
       <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
       <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocus}"/>
       <EventSetter Event="MouseLeftButtonUp" Handler="OnRowClick"/>
       <Setter Property="Template">
         <Setter.Value>
@@ -25,7 +25,7 @@
               </Trigger>
               <DataTrigger Binding="{Binding IsPlaying}" Value="True">
                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
-                <Setter TargetName="Bd" Property="BorderBrush" Value="#55FF6A3D"/>
+                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
               </DataTrigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -65,10 +65,10 @@
         <!-- name + meta -->
         <StackPanel Grid.Column="1" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="260"/>
             <Border Style="{StaticResource Badge}" Background="{StaticResource AccentBrush}" BorderThickness="0"
                     Visibility="{Binding IsPlaying, Converter={StaticResource BoolVis}}">
-              <TextBlock Text="{l:T badge_live}" Foreground="White" FontWeight="SemiBold"/>
+              <TextBlock Text="{l:T badge_live}" Foreground="{StaticResource InkBrush}" FontWeight="SemiBold"/>
             </Border>
             <Border Style="{StaticResource Badge}" Visibility="{Binding Quality, Converter={StaticResource NotEmptyVis}}">
               <TextBlock Text="{Binding Quality}" FlowDirection="LeftToRight"/>
@@ -93,13 +93,32 @@
   </UserControl.Resources>
 
   <Grid>
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="212"/>
+      <ColumnDefinition Width="176"/>
       <ColumnDefinition Width="*"/>
     </Grid.ColumnDefinitions>
 
+    <Border Grid.ColumnSpan="2" Margin="20,16,24,0" Padding="24,20" CornerRadius="18" BorderBrush="#4B5130" BorderThickness="1">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#30361F" Offset="0"/><GradientStop Color="#1C231C" Offset="0.65"/><GradientStop Color="#20291E" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.Background>
+      <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <StackPanel>
+          <TextBlock Text="{l:T hero_label}" Foreground="{StaticResource AccentBrush}" FontSize="10" FontWeight="Bold"/>
+          <TextBlock Text="{l:T hero_title}" FontSize="23" FontWeight="Bold" Margin="0,5,0,0" TextWrapping="Wrap"/>
+          <TextBlock Text="{l:T hero_body}" Foreground="{StaticResource Text2Brush}" FontSize="12" Margin="0,6,20,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xE72C;" Command="{Binding RefreshSourcesCommand}"
+                ToolTip="{l:T btn_refresh_all}" VerticalAlignment="Center" Foreground="{StaticResource AccentBrush}" Background="{StaticResource AccentSoftBrush}"/>
+      </Grid>
+    </Border>
+
     <!-- ================================================================ categories -->
-    <DockPanel Margin="14,22,4,10">
+    <DockPanel Grid.Row="1" Margin="14,22,4,10">
       <TextBlock DockPanel.Dock="Top" Text="{l:T categories}" Style="{StaticResource SectionLabel}" Margin="10,0,0,8"/>
       <ListBox x:Name="CategoryList" Style="{StaticResource PlainListBox}" ItemContainerStyle="{StaticResource CategoryItem}"
                ItemsSource="{Binding CategoryItems}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
@@ -113,7 +132,7 @@
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
               <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="13.5"/>
-              <TextBlock Grid.Column="1" Text="{Binding Label}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="1" Text="{Binding Label}" Margin="6,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
               <TextBlock Grid.Column="2" Text="{Binding Count, StringFormat=N0}" FontSize="11" Foreground="{StaticResource Text3Brush}"
                          VerticalAlignment="Center" Margin="6,0,0,0" FlowDirection="LeftToRight"/>
             </Grid>
@@ -123,7 +142,7 @@
     </DockPanel>
 
     <!-- ================================================================ channel list -->
-    <Grid Grid.Column="1" Margin="10,18,24,0">
+    <Grid Grid.Row="1" Grid.Column="1" Margin="10,18,24,0">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/>
         <RowDefinition Height="Auto"/>
@@ -210,7 +229,7 @@
       </StackPanel>
 
       <!-- empty state -->
-      <Border Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420"
+      <Border Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="260"
               Visibility="{Binding ResultCount, Converter={StaticResource ZeroVis}}">
         <StackPanel Visibility="{Binding IsLibraryLoading, Converter={StaticResource InvBoolVis}}">
           <Border Width="64" Height="64" CornerRadius="20" Background="{StaticResource SurfaceBrush}" HorizontalAlignment="Center">

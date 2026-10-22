@@ -25,7 +25,6 @@ public static class Logger
             File.AppendAllText(_path,
                 Environment.NewLine + "==========================================" + Environment.NewLine +
                 $"TvDesk {typeof(Logger).Assembly.GetName().Version} — {DateTime.Now:yyyy-MM-dd HH:mm:ss}" + Environment.NewLine +
-                $"exe: {Environment.ProcessPath}" + Environment.NewLine +
                 $"OS: {Environment.OSVersion} ({(Environment.Is64BitProcess ? "x64" : "x86")})" + Environment.NewLine);
         }
         catch
@@ -39,11 +38,18 @@ public static class Logger
         if (string.IsNullOrEmpty(_path)) return;
         lock (Gate)
         {
-            try { File.AppendAllText(_path, $"[{DateTime.Now:HH:mm:ss.fff}] {message}{Environment.NewLine}"); }
+            try
+            {
+                if (new FileInfo(_path).Length > 2_000_000)
+                {
+                    File.Move(_path, _path + ".old", true);
+                }
+                File.AppendAllText(_path, $"[{DateTime.Now:HH:mm:ss.fff}] {Privacy.Redact(message)}{Environment.NewLine}");
+            }
             catch { }
         }
     }
 
     public static void Log(string context, Exception ex)
-        => Log($"ERROR {context}: {ex.GetType().Name}: {ex.Message}{Environment.NewLine}{ex.StackTrace}");
+        => Log($"ERROR {context}: {ex.GetType().Name}: {ex.Message}");
 }

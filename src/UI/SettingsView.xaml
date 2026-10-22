@@ -94,7 +94,7 @@
               <TextBlock Text="{l:T set_monitor}" Style="{StaticResource RowLabel}"/>
               <TextBlock Text="{l:T set_monitor_hint}" Style="{StaticResource RowHint}"/>
             </StackPanel>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding MonitorOptions}" SelectedValue="{Binding Monitor}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding MonitorOptions}" SelectedValue="{Binding Monitor}"/>
           </Grid>
           <Border Style="{StaticResource Divider}"/>
           <Grid Style="{StaticResource Row}">
@@ -103,7 +103,7 @@
               <TextBlock Text="{l:T set_fit}" Style="{StaticResource RowLabel}"/>
               <TextBlock Text="{l:T set_fit_hint}" Style="{StaticResource RowHint}"/>
             </StackPanel>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding FitOptions}" SelectedValue="{Binding Fit}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding FitOptions}" SelectedValue="{Binding Fit}"/>
           </Grid>
           <Border Style="{StaticResource Divider}"/>
           <Grid Style="{StaticResource Row}">
@@ -112,7 +112,7 @@
               <TextBlock Text="{l:T set_quality}" Style="{StaticResource RowLabel}"/>
               <TextBlock Text="{l:T set_quality_hint}" Style="{StaticResource RowHint}"/>
             </StackPanel>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding QualityOptions}" SelectedValue="{Binding Quality}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding QualityOptions}" SelectedValue="{Binding Quality}"/>
           </Grid>
         </StackPanel>
       </Border>
@@ -129,31 +129,31 @@
           <Grid Style="{StaticResource Row}">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="{l:T set_on_fullscreen}" Style="{StaticResource RowLabel}" VerticalAlignment="Center" Margin="0,0,20,0"/>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnFullscreen}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnFullscreen}"/>
           </Grid>
           <Border Style="{StaticResource Divider}"/>
           <Grid Style="{StaticResource Row}">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="{l:T set_on_maximized}" Style="{StaticResource RowLabel}" VerticalAlignment="Center" Margin="0,0,20,0"/>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnMaximized}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnMaximized}"/>
           </Grid>
           <Border Style="{StaticResource Divider}"/>
           <Grid Style="{StaticResource Row}">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="{l:T set_on_focus}" Style="{StaticResource RowLabel}" VerticalAlignment="Center" Margin="0,0,20,0"/>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnAppFocused}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnAppFocused}"/>
           </Grid>
           <Border Style="{StaticResource Divider}"/>
           <Grid Style="{StaticResource Row}">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="{l:T set_on_battery}" Style="{StaticResource RowLabel}" VerticalAlignment="Center" Margin="0,0,20,0"/>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnBattery}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnBattery}"/>
           </Grid>
           <Border Style="{StaticResource Divider}"/>
           <Grid Style="{StaticResource Row}">
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="{l:T set_on_locked}" Style="{StaticResource RowLabel}" VerticalAlignment="Center" Margin="0,0,20,0"/>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnLocked}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding ActionOptions}" SelectedValue="{Binding OnLocked}"/>
           </Grid>
         </StackPanel>
       </Border>
@@ -195,7 +195,7 @@
               <TextBlock Text="{l:T set_refresh}" Style="{StaticResource RowLabel}"/>
               <TextBlock Text="{l:T set_refresh_hint}" Style="{StaticResource RowHint}"/>
             </StackPanel>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding RefreshOptions}" SelectedValue="{Binding RefreshHours}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding RefreshOptions}" SelectedValue="{Binding RefreshHours}"/>
           </Grid>
         </StackPanel>
       </Border>
@@ -214,7 +214,7 @@
               <TextBlock Text="{l:T set_proxy}" Style="{StaticResource RowLabel}"/>
               <TextBlock Text="{l:T set_proxy_hint}" Style="{StaticResource RowHint}"/>
             </StackPanel>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding ProxyOptions}" SelectedValue="{Binding Proxy}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding ProxyOptions}" SelectedValue="{Binding Proxy}"/>
           </Grid>
           <Grid Margin="0,0,0,10" Visibility="{Binding IsCustomProxy, Converter={StaticResource BoolVis}}">
             <TextBox Text="{Binding CustomProxy, UpdateSourceTrigger=LostFocus}" Tag="http://127.0.0.1:10809" FlowDirection="LeftToRight"/>
@@ -235,7 +235,7 @@
               <TextBlock Text="{l:T set_vout}" Style="{StaticResource RowLabel}"/>
               <TextBlock Text="{l:T set_vout_hint}" Style="{StaticResource RowHint}"/>
             </StackPanel>
-            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" ItemsSource="{Binding VideoOutputOptions}" SelectedValue="{Binding VideoOutput}"/>
+            <ComboBox Grid.Column="1" Style="{StaticResource SettingCombo}" SelectedValuePath="Key" ItemsSource="{Binding VideoOutputOptions}" SelectedValue="{Binding VideoOutput}"/>
           </Grid>
           <Border Style="{StaticResource Divider}"/>
           <Grid Style="{StaticResource Row}">
@@ -251,6 +251,13 @@
             <Button Grid.Column="1" Style="{StaticResource ButtonBase}" Content="{l:T btn_update}" Command="{Binding UpdateYtDlpCommand}"
                     IsEnabled="{Binding CanUpdateYtDlp}" VerticalAlignment="Center"/>
           </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource Card}" Margin="0,0,0,14" BorderBrush="#4B5130">
+        <StackPanel>
+          <TextBlock Text="{l:T privacy_title}" Style="{StaticResource H2}" Foreground="{StaticResource AccentBrush}"/>
+          <TextBlock Text="{l:T privacy_body}" Style="{StaticResource Muted}" Margin="0,8,0,0"/>
         </StackPanel>
       </Border>
 

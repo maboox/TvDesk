@@ -57,11 +57,12 @@ public sealed class FilterOption
     public override string ToString() => Display;
 }
 
-public sealed class Option
+public sealed class Option : Observable
 {
     public string Key { get; }
-    public string Label { get; }
-    public Option(string key, string label) { Key = key; Label = label; }
+    private string _label;
+    public string Label { get => _label; set => Set(ref _label, value); }
+    public Option(string key, string label) { Key = key; _label = label; }
     public override string ToString() => Label;
 }
 

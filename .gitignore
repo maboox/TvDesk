@@ -3,11 +3,24 @@ bin/
 obj/
 publish/
 tools/
+artifacts/
+*.bundle
+*.download
+*.tmp
+*.broken
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+*.pem
 *.zip
 *.nupkg
 
 # Local runtime files
 TvDesk.log
+*.log
 settings.json
 cache/
 

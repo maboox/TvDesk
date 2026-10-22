@@ -91,6 +91,14 @@ public sealed class AppSettings
         if (string.IsNullOrWhiteSpace(Monitor)) Monitor = "primary";
         if (VideoOutput != "d3d11" && VideoOutput != "auto") VideoOutput = "gdi";
         if (RefreshHours < 1) RefreshHours = 48;
+        RefreshHours = Math.Min(RefreshHours, 720);
+        if (!Enum.IsDefined(Fit)) Fit = FitMode.Fill;
+        if (!Enum.IsDefined(Proxy)) Proxy = ProxyMode.System;
+        if (!Enum.IsDefined(OnAppFocused)) OnAppFocused = AutoAction.None;
+        if (!Enum.IsDefined(OnMaximized)) OnMaximized = AutoAction.None;
+        if (!Enum.IsDefined(OnFullscreen)) OnFullscreen = AutoAction.Pause;
+        if (!Enum.IsDefined(OnBattery)) OnBattery = AutoAction.None;
+        if (!Enum.IsDefined(OnLocked)) OnLocked = AutoAction.Pause;
         Sources ??= new();
         CustomSources ??= new();
         MyLinks ??= new();
@@ -99,8 +107,16 @@ public sealed class AppSettings
         CustomProxy ??= "";
         Favorites = Favorites.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
         Recent = Recent.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().Take(30).ToList();
-        MyLinks = MyLinks.Where(x => x != null && !string.IsNullOrWhiteSpace(x.Url)).ToList();
-        CustomSources = CustomSources.Where(x => x != null && !string.IsNullOrWhiteSpace(x.Url)).ToList();
+        MyLinks = MyLinks.Where(x => x != null && MediaPolicy.IsPlayable(x.Url)).DistinctBy(x => x.Url).ToList();
+        CustomSources = CustomSources.Where(x => x != null && (MediaPolicy.IsHttp(x.Url) || MediaPolicy.IsLocalPath(x.Url))).DistinctBy(x => x.Url).ToList();
+        var sourceIds = new HashSet<string>();
+        foreach (var source in CustomSources)
+            if (string.IsNullOrWhiteSpace(source.Id) || !sourceIds.Add(source.Id))
+            {
+                source.Id = Guid.NewGuid().ToString("N");
+                sourceIds.Add(source.Id);
+            }
+        if (!MediaPolicy.IsPlayable(LastUrl)) { LastUrl = null; LastName = null; }
     }
 }
 
@@ -120,7 +136,7 @@ public static class SettingsStore
         {
             if (File.Exists(path))
             {
-                string text = File.ReadAllText(path);
+                string text = PrivateFile.Read(path);
                 var settings = JsonSerializer.Deserialize<AppSettings>(text, Options) ?? new AppSettings();
                 JsonNode? node = JsonNode.Parse(text);
                 if (node is JsonObject obj && !obj.ContainsKey("SchemaVersion"))
@@ -132,7 +148,6 @@ public static class SettingsStore
         catch (Exception ex)
         {
             Logger.Log("Settings load failed — starting with defaults", ex);
-            try { File.Copy(path, path + ".broken", true); } catch { }
         }
         var fresh = new AppSettings();
         fresh.Normalize();
@@ -145,7 +160,7 @@ public static class SettingsStore
         try
         {
             string tmp = path + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(settings, Options));
+            File.WriteAllText(tmp, PrivateFile.Encode(JsonSerializer.Serialize(settings, Options)));
             File.Move(tmp, path, true);
         }
         catch (Exception ex)

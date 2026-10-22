@@ -1,6 +1,8 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TvDesk.Core;
 
@@ -27,13 +29,19 @@ public static class Http
         if (mode == _mode && c == _custom) return;
         _mode = mode;
         _custom = c;
+        var oldClient = Client;
+        var oldProbe = Probe;
         Client = Create(TimeSpan.FromSeconds(90));
         Probe = Create(TimeSpan.FromSeconds(15));
-        Logger.Log($"HTTP proxy mode = {mode} {c}");
+        oldClient.Dispose();
+        oldProbe.Dispose();
+        Logger.Log($"HTTP proxy mode = {mode}");
     }
 
     private static HttpClient Create(TimeSpan timeout)
     {
+        if (_mode == ProxyMode.Custom && !IsValidProxy(_custom))
+            return new HttpClient(new BlockedProxyHandler()) { Timeout = timeout };
         var handler = new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
@@ -68,10 +76,14 @@ public static class Http
     /// Used to hand the same proxy to VLC and yt-dlp, which do not read Windows proxy settings themselves.</summary>
     public static string? ProxyFor(string target)
     {
+        if (_mode == ProxyMode.Custom)
+        {
+            if (!IsValidProxy(_custom)) throw new InvalidOperationException("Invalid custom proxy; connection blocked.");
+            return NormalizeProxy(_custom);
+        }
         try
         {
             if (_mode == ProxyMode.None) return null;
-            if (_mode == ProxyMode.Custom) return string.IsNullOrWhiteSpace(_custom) ? null : NormalizeProxy(_custom);
             if (!Uri.TryCreate(target, UriKind.Absolute, out var uri)) return null;
             if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return null;
             var sys = HttpClient.DefaultProxy;
@@ -91,5 +103,16 @@ public static class Http
         p = p.Trim();
         if (p.Length == 0) return p;
         return p.Contains("://") ? p : "http://" + p;
+    }
+
+    public static bool IsValidProxy(string value)
+        => Uri.TryCreate(NormalizeProxy(value), UriKind.Absolute, out var uri)
+           && (uri.Scheme == "http" || uri.Scheme == "https") && uri.Host.Length > 0
+           && uri.AbsolutePath == "/" && uri.Query.Length == 0 && uri.Fragment.Length == 0;
+
+    private sealed class BlockedProxyHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+            => Task.FromException<HttpResponseMessage>(new HttpRequestException("Invalid custom proxy; connection blocked."));
     }
 }

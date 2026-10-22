@@ -23,6 +23,7 @@ public partial class SourcesView : UserControl
     private void OnHomepage(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not SourceItem item || string.IsNullOrWhiteSpace(item.Homepage)) return;
+        if (!MediaPolicy.IsHttp(item.Homepage)) return;
         try { Process.Start(new ProcessStartInfo(item.Homepage) { UseShellExecute = true }); }
         catch (Exception ex) { Logger.Log("Open homepage", ex); }
     }

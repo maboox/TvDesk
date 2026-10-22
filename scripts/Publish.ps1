@@ -22,8 +22,13 @@ foreach ($library in $runtimeLibraries) {
     }
 }
 $runtimeLibraries | Set-Content (Join-Path $Output 'licenses/runtime-versions.txt') -Encoding utf8
-foreach ($item in @('TvDesk.exe','yt-dlp.exe','libvlc','licenses/LGPL-2.1.txt')) {
+foreach ($item in @('TvDesk.exe','yt-dlp.exe','libvlc/win-x64/libvlc.dll','licenses/LGPL-2.1.txt')) {
     if (!(Test-Path -LiteralPath (Join-Path $Output $item))) { throw "Missing release file: $item" }
+}
+foreach ($otherArchitecture in @('win-x86', 'win-arm64')) {
+    if (Test-Path -LiteralPath (Join-Path $Output "libvlc/$otherArchitecture")) {
+        throw 'Stale native binaries found. Publish into a new empty output directory.'
+    }
 }
 $pin = Get-Content (Join-Path $root 'src/Resources/tools.json') -Raw | ConvertFrom-Json
 if ((Get-FileHash (Join-Path $Output 'yt-dlp.exe')).Hash -ne $pin.sha256) { throw 'Bundled helper integrity check failed' }

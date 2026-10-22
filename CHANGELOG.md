@@ -12,6 +12,7 @@
 - Protect saved settings and cached playlists with current-user Windows encryption. Redact URLs/paths in logs, hash health keys and remove freeze-frame files after loading.
 - Pin and verify yt-dlp; disable user configuration/plugins and background self-updates. Install/repair uses the reviewed helper release.
 - Add regression/native playback tests, bilingual render checks, least-privilege CI, pinned actions, checksummed portable releases, issue templates and Dependabot.
+- Package only x64 native VLC binaries and detect leftover architectures in an existing publish folder.
 
 ## Earlier versions
 

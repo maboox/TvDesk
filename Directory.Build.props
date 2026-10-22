@@ -1,6 +1,9 @@
 <Project>
   <PropertyGroup>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <VlcWindowsX64Enabled>true</VlcWindowsX64Enabled>
+    <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
     <Deterministic>true</Deterministic>
     <DebugType>portable</DebugType>
   </PropertyGroup>
